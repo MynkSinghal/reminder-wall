@@ -75,12 +75,10 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white">
       {/* ── Top bar ── */}
-      <div className="border-b border-[#111] px-6 py-5 flex items-center justify-between">
+      <div className="border-b border-[#111] px-5 py-4 flex items-center justify-between">
+        <span className="text-[#FF693C] text-xs font-bold tracking-[0.3em] uppercase">Reminder Wall</span>
         <div className="flex items-center gap-3">
-          <span className="text-[#FF693C] text-xs font-bold tracking-[0.3em] uppercase">Reminder Wall</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-[#2a2a2a] text-xs tabular-nums">
+          <span className="text-[#252525] text-xs tabular-nums">
             {pending.length} pending · {done.length} done
           </span>
           <a
@@ -88,17 +86,16 @@ export default function Home() {
             target="_blank"
             className="text-xs text-[#FF693C] border border-[#FF693C]/30 rounded px-3 py-1.5 hover:bg-[#FF693C]/10 transition-colors"
           >
-            Preview wallpaper ↗
+            Wallpaper ↗
           </a>
         </div>
       </div>
 
-      <div className="max-w-xl mx-auto px-6 py-10">
+      <div className="max-w-xl mx-auto px-5 py-8">
 
         {/* ── Add input ── */}
-        <div className="mb-10">
-          <div className="flex gap-3 items-center bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-5 py-4 focus-within:border-[#FF693C]/40 transition-colors">
-            <span className="text-[#FF693C] text-lg font-bold select-none">+</span>
+        <div className="mb-8">
+          <div className="flex gap-3 items-center bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-4 focus-within:border-[#FF693C]/40 transition-colors">
             <input
               ref={inputRef}
               className="flex-1 bg-transparent text-white placeholder-[#282828] text-base outline-none"
@@ -110,9 +107,9 @@ export default function Home() {
             <button
               onClick={addReminder}
               disabled={!input.trim() || adding}
-              className="text-xs font-bold tracking-wider text-[#FF693C] disabled:opacity-20 hover:opacity-70 transition-opacity uppercase"
+              className="bg-[#FF693C] text-black text-xs font-bold tracking-wider px-4 py-2 rounded-lg disabled:opacity-20 active:scale-95 transition-all"
             >
-              Add
+              ADD
             </button>
           </div>
         </div>
@@ -123,29 +120,31 @@ export default function Home() {
         ) : sorted.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-[#1a1a1a] text-sm">No reminders yet.</p>
-            <p className="text-[#141414] text-xs mt-1">Add one above to get started.</p>
           </div>
         ) : (
-          <ul>
+          <ul className="space-y-1">
             {sorted.map((r, idx) => (
               <li
                 key={r.id}
-                className={`group flex items-center gap-4 py-4 border-b border-[#0f0f0f] transition-all ${r.done ? "opacity-30" : ""}`}
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl border transition-all ${
+                  r.done
+                    ? "border-[#0d0d0d] bg-[#040404]"
+                    : "border-[#111] bg-[#050505]"
+                }`}
               >
                 {/* Number */}
-                <span className="text-[#FF693C] text-xs font-bold tabular-nums w-7 text-right shrink-0 select-none">
+                <span className="text-[#FF693C] text-xs font-bold tabular-nums w-6 text-right shrink-0 select-none">
                   {String(idx + 1).padStart(2, "0")}
                 </span>
 
-                {/* Done toggle */}
+                {/* Done toggle — always visible, big tap target */}
                 <button
                   onClick={() => toggleDone(r.id)}
-                  className="w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all"
+                  className="w-6 h-6 rounded-full border flex items-center justify-center shrink-0 transition-all active:scale-90"
                   style={{
-                    borderColor: r.done ? "#FF693C" : "#1e1e1e",
+                    borderColor: r.done ? "#FF693C" : "#2a2a2a",
                     background: r.done ? "#FF693C" : "transparent",
                   }}
-                  title={r.done ? "Mark pending" : "Mark done"}
                 >
                   {r.done && (
                     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
@@ -155,16 +154,16 @@ export default function Home() {
                 </button>
 
                 {/* Text */}
-                <span className={`flex-1 text-base leading-relaxed ${r.done ? "line-through text-[#2a2a2a]" : "text-white"}`}>
+                <span className={`flex-1 text-sm leading-relaxed min-w-0 ${r.done ? "line-through text-[#333]" : "text-white"}`}>
                   {r.text}
                 </span>
 
-                {/* Controls — appear on hover */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                {/* ── Action buttons — always visible ── */}
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => move(r.id, "up")}
                     disabled={idx === 0}
-                    className="w-7 h-7 flex items-center justify-center text-[#333] hover:text-white disabled:opacity-10 transition-colors rounded hover:bg-[#111]"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#0f0f0f] text-[#444] active:bg-[#1a1a1a] active:text-white disabled:opacity-10 transition-all"
                     title="Move up"
                   >
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -174,7 +173,7 @@ export default function Home() {
                   <button
                     onClick={() => move(r.id, "down")}
                     disabled={idx === sorted.length - 1}
-                    className="w-7 h-7 flex items-center justify-center text-[#333] hover:text-white disabled:opacity-10 transition-colors rounded hover:bg-[#111]"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#0f0f0f] text-[#444] active:bg-[#1a1a1a] active:text-white disabled:opacity-10 transition-all"
                     title="Move down"
                   >
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -183,10 +182,10 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => deleteReminder(r.id)}
-                    className="w-7 h-7 flex items-center justify-center text-[#222] hover:text-red-500 transition-colors rounded hover:bg-[#111]"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#0f0f0f] text-[#444] active:bg-red-950 active:text-red-400 transition-all"
                     title="Delete"
                   >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
                       <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                     </svg>
                   </button>
@@ -196,13 +195,11 @@ export default function Home() {
           </ul>
         )}
 
-        {/* ── Wallpaper tip ── */}
+        {/* ── Wallpaper URL tip ── */}
         {sorted.length > 0 && (
-          <div className="mt-12 border border-[#0f0f0f] rounded-xl p-5 bg-[#030303]">
-            <p className="text-[#222] text-xs leading-relaxed">
-              Wallpaper URL for your iOS Shortcut
-            </p>
-            <p className="text-[#FF693C]/60 text-xs font-mono mt-2 break-all">
+          <div className="mt-10 border border-[#0f0f0f] rounded-xl p-4 bg-[#030303]">
+            <p className="text-[#1e1e1e] text-xs mb-2">iOS Shortcut URL</p>
+            <p className="text-[#FF693C]/50 text-xs font-mono break-all">
               {typeof window !== "undefined" ? window.location.origin : "https://reminder-wall.vercel.app"}/api/image
             </p>
           </div>

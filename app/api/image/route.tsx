@@ -16,7 +16,7 @@ const SIDE_PAD = 80;
 
 const ORANGE  = "#FF693C";
 const WHITE   = "#FFFFFF";
-const DONE    = "#202020";
+const DONE    = "#555555";
 const DIVIDER = "#0F0F0F";
 const MUTED   = "#161616";
 
@@ -101,7 +101,7 @@ export async function GET() {
                 height: ITEM_H,
                 gap: 28,
                 borderBottom: `1px solid ${DIVIDER}`,
-                opacity: r.done ? 0.2 : 1,
+                // no opacity — color handles done state
               }}
             >
               <span style={{ fontSize: NUM_PX, color: ORANGE, fontWeight: 700, letterSpacing: "0.06em", width: 64, textAlign: "right", flexShrink: 0, lineHeight: 1 }}>
