@@ -76,15 +76,20 @@ export async function GET() {
             REMINDERS
           </span>
           <span style={{ fontSize: 34, color: pending.length > 0 ? ORANGE : MUTED, letterSpacing: "0.1em", fontWeight: 700 }}>
-            {pending.length} left
+            {pending.length > 0 ? `${pending.length} left` : all.length > 0 ? "all done ✓" : ""}
           </span>
         </div>
         <div style={{ height: 1, background: ORANGE, opacity: 0.2, marginBottom: 28, display: "flex" }} />
 
         {/* ── List ── */}
-        {sorted.length === 0 ? (
-          <div style={{ display: "flex", alignItems: "center", height: ITEM_H }}>
-            <span style={{ fontSize: TEXT_PX, color: DONE, fontWeight: 700, letterSpacing: "-0.03em" }}>nothing.</span>
+        {sorted.length === 0 || pending.length === 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: ITEM_H * 2, gap: 16 }}>
+            <span style={{ fontSize: TEXT_PX, color: ORANGE, fontWeight: 700, letterSpacing: "-0.03em", opacity: 0.9 }}>
+              {sorted.length === 0 ? "all set." : "all done."}
+            </span>
+            <span style={{ fontSize: 32, color: DONE, fontWeight: 700, letterSpacing: "0.02em" }}>
+              {sorted.length === 0 ? "no reminders." : "nothing pending."}
+            </span>
           </div>
         ) : (
           sorted.map((r, i) => (
