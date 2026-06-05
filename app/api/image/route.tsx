@@ -10,23 +10,19 @@ interface Reminder {
   order: number;
 }
 
-// iPhone 14 Pro native resolution
 const W = 1179;
 const H = 2556;
 
-// Matching The-Day-Grid layout math exactly:
-// grid start_y = (H/2) - (grid_h/2) + 150 ≈ 798
-// We start our content exactly there so it sits in the same visual zone as the dots.
-const TOP_PAD = 798;
-const SIDE_PAD = 88;
-const BOTTOM_PAD = 160;
+// Pushed lower — well below the clock zone
+const TOP_PAD = 960;
+const SIDE_PAD = 80;
+const BOTTOM_PAD = 200;
 
 const ORANGE = "#FF693C";
-const ORANGE_DIM = "#7A3018";
 const WHITE = "#FFFFFF";
-const GRAY = "#1E1E1E";      // done text
-const DIVIDER = "#141414";
-const FOOTER = "#1A1A1A";
+const DONE_COL = "#252525";
+const DIVIDER = "#111111";
+const FOOTER_COL = "#1C1C1C";
 
 export async function GET() {
   const redis = Redis.fromEnv();
@@ -37,22 +33,18 @@ export async function GET() {
   const done = reminders.filter((r) => r.done);
   const all = [...pending, ...done];
 
+  // Cap at 5 — caller won't add more than that anyway
+  const visible = all.slice(0, 5);
+
   const now = new Date();
   const timeStr = now.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const dateStr = now.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
 
-  // Each row = 96px; usable height below TOP_PAD minus BOTTOM_PAD minus header
-  const ITEM_H = 96;
-  const HEADER_H = 108;
-  const usable = H - TOP_PAD - BOTTOM_PAD - HEADER_H;
-  const maxItems = Math.floor(usable / ITEM_H);
-  const visible = all.slice(0, maxItems);
+  // Spread 5 items across the usable zone
+  const usable = H - TOP_PAD - BOTTOM_PAD - 130; // 130 = header + rule
+  const ITEM_H = Math.floor(usable / 5); // ~233px per slot
 
   return new ImageResponse(
     (
@@ -73,32 +65,31 @@ export async function GET() {
         <div
           style={{
             display: "flex",
-            alignItems: "flex-end",
+            alignItems: "center",
             justifyContent: "space-between",
-            marginBottom: 20,
+            marginBottom: 24,
           }}
         >
           <span
             style={{
-              fontSize: 24,
+              fontSize: 22,
               color: ORANGE,
-              letterSpacing: "0.30em",
+              letterSpacing: "0.32em",
               fontWeight: 700,
-              lineHeight: 1,
             }}
           >
             REMINDERS
           </span>
           <span
             style={{
-              fontSize: 28,
-              color: pending.length > 0 ? ORANGE : GRAY,
-              letterSpacing: "0.05em",
-              lineHeight: 1,
-              opacity: 0.9,
+              fontSize: 22,
+              color: pending.length > 0 ? ORANGE : FOOTER_COL,
+              letterSpacing: "0.08em",
+              fontWeight: 600,
+              opacity: 0.8,
             }}
           >
-            {pending.length} left
+            {pending.length} pending
           </span>
         </div>
 
@@ -107,8 +98,8 @@ export async function GET() {
           style={{
             height: 1,
             background: ORANGE,
-            opacity: 0.25,
-            marginBottom: 12,
+            opacity: 0.2,
+            marginBottom: 0,
             display: "flex",
           }}
         />
@@ -126,12 +117,16 @@ export async function GET() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                height: ITEM_H * 2,
-                gap: 28,
+                flex: 1,
               }}
             >
               <span
-                style={{ fontSize: 52, color: GRAY, letterSpacing: "0.02em" }}
+                style={{
+                  fontSize: 72,
+                  color: DONE_COL,
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                }}
               >
                 nothing yet.
               </span>
@@ -142,57 +137,43 @@ export async function GET() {
                 key={r.id}
                 style={{
                   display: "flex",
-                  alignItems: "center",
+                  flexDirection: "column",
+                  justifyContent: "center",
                   height: ITEM_H,
-                  gap: 32,
                   borderBottom: `1px solid ${DIVIDER}`,
-                  opacity: r.done ? 0.22 : 1,
+                  gap: 6,
+                  opacity: r.done ? 0.2 : 1,
                 }}
               >
-                {/* Number — orange for pending */}
+                {/* Number */}
                 <span
                   style={{
-                    fontSize: 30,
-                    color: r.done ? GRAY : ORANGE_DIM,
-                    width: 48,
-                    textAlign: "right",
-                    flexShrink: 0,
+                    fontSize: 22,
+                    color: ORANGE,
+                    letterSpacing: "0.15em",
                     fontWeight: 700,
-                    letterSpacing: "0.02em",
+                    lineHeight: 1,
                   }}
                 >
                   {String(i + 1).padStart(2, "0")}
                 </span>
 
-                {/* Reminder text */}
+                {/* Text — the big one */}
                 <span
                   style={{
-                    fontSize: 52,
-                    color: r.done ? GRAY : WHITE,
-                    fontWeight: r.done ? 400 : 600,
+                    fontSize: 82,
+                    color: r.done ? DONE_COL : WHITE,
+                    fontWeight: 800,
                     textDecoration: r.done ? "line-through" : "none",
-                    flex: 1,
+                    letterSpacing: "-0.025em",
+                    lineHeight: 1,
                     overflow: "hidden",
                     whiteSpace: "nowrap",
                     textOverflow: "ellipsis",
-                    letterSpacing: "-0.01em",
                   }}
                 >
                   {r.text}
                 </span>
-
-                {/* Done checkmark */}
-                {r.done && (
-                  <span
-                    style={{
-                      fontSize: 28,
-                      color: ORANGE,
-                      flexShrink: 0,
-                    }}
-                  >
-                    ✓
-                  </span>
-                )}
               </div>
             ))
           )}
@@ -202,24 +183,14 @@ export async function GET() {
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingTop: 28,
+            justifyContent: "flex-end",
+            paddingTop: 20,
           }}
         >
           <span
             style={{
-              fontSize: 22,
-              color: FOOTER,
-              letterSpacing: "0.05em",
-            }}
-          >
-            {dateStr}
-          </span>
-          <span
-            style={{
-              fontSize: 22,
-              color: FOOTER,
+              fontSize: 20,
+              color: FOOTER_COL,
               letterSpacing: "0.05em",
             }}
           >
