@@ -1,6 +1,6 @@
-import { kv } from "@vercel/kv";
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
+import { redis, KEY } from "@/lib/redis";
 
 export interface Reminder {
   id: string;
@@ -9,10 +9,8 @@ export interface Reminder {
   order: number;
 }
 
-const KEY = "reminders";
-
 async function getAll(): Promise<Reminder[]> {
-  const data = await kv.get<Reminder[]>(KEY);
+  const data = await redis.get<Reminder[]>(KEY);
   return data ?? [];
 }
 
@@ -35,6 +33,6 @@ export async function POST(req: Request) {
     order: maxOrder + 1,
   };
   reminders.push(newReminder);
-  await kv.set(KEY, reminders);
+  await redis.set(KEY, reminders);
   return NextResponse.json(newReminder, { status: 201 });
 }

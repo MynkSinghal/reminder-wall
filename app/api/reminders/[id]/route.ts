@@ -1,11 +1,9 @@
-import { kv } from "@vercel/kv";
 import { NextResponse } from "next/server";
+import { redis, KEY } from "@/lib/redis";
 import type { Reminder } from "../route";
 
-const KEY = "reminders";
-
 async function getAll(): Promise<Reminder[]> {
-  const data = await kv.get<Reminder[]>(KEY);
+  const data = await redis.get<Reminder[]>(KEY);
   return data ?? [];
 }
 
@@ -21,7 +19,7 @@ export async function PATCH(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
   reminders[idx] = { ...reminders[idx], ...body };
-  await kv.set(KEY, reminders);
+  await redis.set(KEY, reminders);
   return NextResponse.json(reminders[idx]);
 }
 
@@ -32,6 +30,6 @@ export async function DELETE(
   const { id } = await params;
   const reminders = await getAll();
   const filtered = reminders.filter((r) => r.id !== id);
-  await kv.set(KEY, filtered);
+  await redis.set(KEY, filtered);
   return NextResponse.json({ ok: true });
 }
