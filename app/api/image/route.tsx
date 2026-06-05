@@ -1,5 +1,6 @@
 import { ImageResponse } from "@vercel/og";
 import { Redis } from "@upstash/redis";
+import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
@@ -13,38 +14,49 @@ interface Reminder {
 const W = 1179;
 const H = 2556;
 
-// Pushed lower — well below the clock zone
-const TOP_PAD = 960;
+const TOP_PAD = 980;   // safely below clock on any iPhone lock screen
 const SIDE_PAD = 80;
-const BOTTOM_PAD = 200;
+const BOTTOM_PAD = 220;
 
 const ORANGE = "#FF693C";
 const WHITE = "#FFFFFF";
-const DONE_COL = "#252525";
-const DIVIDER = "#111111";
-const FOOTER_COL = "#1C1C1C";
+const DONE_COL = "#1E1E1E";
+const DIVIDER = "#101010";
+const FOOTER_COL = "#1A1A1A";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Load bundled Inter Bold (woff v1 — works with Satori)
+  const origin = new URL(request.url).origin;
+  let fontData: ArrayBuffer | null = null;
+  try {
+    const res = await fetch(`${origin}/fonts/Inter-Bold.woff`);
+    if (res.ok) fontData = await res.arrayBuffer();
+  } catch {
+    // render without custom font
+  }
+
   const redis = Redis.fromEnv();
   const data = await redis.get<Reminder[]>("reminders");
   const reminders: Reminder[] = (data ?? []).sort((a, b) => a.order - b.order);
 
   const pending = reminders.filter((r) => !r.done);
-  const done = reminders.filter((r) => r.done);
-  const all = [...pending, ...done];
-
-  // Cap at 5 — caller won't add more than that anyway
-  const visible = all.slice(0, 5);
+  const done    = reminders.filter((r) => r.done);
+  const all     = [...pending, ...done].slice(0, 5);
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
+    hour: "2-digit", minute: "2-digit",
   });
 
-  // Spread 5 items across the usable zone
-  const usable = H - TOP_PAD - BOTTOM_PAD - 130; // 130 = header + rule
-  const ITEM_H = Math.floor(usable / 5); // ~233px per slot
+  // Dynamic row height — fewer items = more space per item, always in-your-face
+  const HEADER_H = 110;
+  const usable   = H - TOP_PAD - BOTTOM_PAD - HEADER_H;
+  const count    = Math.max(all.length, 1);
+  const ITEM_H   = Math.floor(usable / Math.min(count, 5));
+
+  // Font size scales with item height — bigger when fewer items
+  const TEXT_SIZE = Math.min(Math.floor(ITEM_H * 0.52), 110);
+  const NUM_SIZE  = Math.floor(TEXT_SIZE * 0.25);
 
   return new ImageResponse(
     (
@@ -59,80 +71,28 @@ export async function GET() {
           paddingLeft: SIDE_PAD,
           paddingRight: SIDE_PAD,
           paddingBottom: BOTTOM_PAD,
+          fontFamily: fontData ? "Inter" : "sans-serif",
         }}
       >
         {/* ── Header ── */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 24,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 22,
-              color: ORANGE,
-              letterSpacing: "0.32em",
-              fontWeight: 700,
-            }}
-          >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+          <span style={{ fontSize: 20, color: ORANGE, letterSpacing: "0.32em", fontWeight: 700 }}>
             REMINDERS
           </span>
-          <span
-            style={{
-              fontSize: 22,
-              color: pending.length > 0 ? ORANGE : FOOTER_COL,
-              letterSpacing: "0.08em",
-              fontWeight: 600,
-              opacity: 0.8,
-            }}
-          >
-            {pending.length} pending
+          <span style={{ fontSize: 20, color: pending.length > 0 ? ORANGE : FOOTER_COL, letterSpacing: "0.1em", fontWeight: 700, opacity: 0.85 }}>
+            {pending.length} left
           </span>
         </div>
-
-        {/* Orange rule */}
-        <div
-          style={{
-            height: 1,
-            background: ORANGE,
-            opacity: 0.2,
-            marginBottom: 0,
-            display: "flex",
-          }}
-        />
+        <div style={{ height: 1, background: ORANGE, opacity: 0.18, display: "flex" }} />
 
         {/* ── Items ── */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-          }}
-        >
-          {visible.length === 0 ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                flex: 1,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 72,
-                  color: DONE_COL,
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                nothing yet.
-              </span>
+        <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          {all.length === 0 ? (
+            <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
+              <span style={{ fontSize: 90, color: DONE_COL, fontWeight: 700 }}>nothing.</span>
             </div>
           ) : (
-            visible.map((r, i) => (
+            all.map((r, i) => (
               <div
                 key={r.id}
                 style={{
@@ -141,32 +101,22 @@ export async function GET() {
                   justifyContent: "center",
                   height: ITEM_H,
                   borderBottom: `1px solid ${DIVIDER}`,
-                  gap: 6,
-                  opacity: r.done ? 0.2 : 1,
+                  paddingLeft: 4,
+                  gap: 4,
+                  opacity: r.done ? 0.18 : 1,
                 }}
               >
-                {/* Number */}
-                <span
-                  style={{
-                    fontSize: 22,
-                    color: ORANGE,
-                    letterSpacing: "0.15em",
-                    fontWeight: 700,
-                    lineHeight: 1,
-                  }}
-                >
+                <span style={{ fontSize: NUM_SIZE, color: ORANGE, fontWeight: 700, letterSpacing: "0.12em", lineHeight: 1 }}>
                   {String(i + 1).padStart(2, "0")}
                 </span>
-
-                {/* Text — the big one */}
                 <span
                   style={{
-                    fontSize: 82,
+                    fontSize: TEXT_SIZE,
                     color: r.done ? DONE_COL : WHITE,
-                    fontWeight: 800,
-                    textDecoration: r.done ? "line-through" : "none",
-                    letterSpacing: "-0.025em",
+                    fontWeight: 700,
+                    letterSpacing: "-0.03em",
                     lineHeight: 1,
+                    textDecoration: r.done ? "line-through" : "none",
                     overflow: "hidden",
                     whiteSpace: "nowrap",
                     textOverflow: "ellipsis",
@@ -180,25 +130,19 @@ export async function GET() {
         </div>
 
         {/* ── Footer ── */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            paddingTop: 20,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 20,
-              color: FOOTER_COL,
-              letterSpacing: "0.05em",
-            }}
-          >
+        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 18 }}>
+          <span style={{ fontSize: 18, color: FOOTER_COL, letterSpacing: "0.06em" }}>
             {timeStr}
           </span>
         </div>
       </div>
     ),
-    { width: W, height: H }
+    {
+      width: W,
+      height: H,
+      fonts: fontData
+        ? [{ name: "Inter", data: fontData, style: "normal", weight: 700 }]
+        : [],
+    }
   );
 }
