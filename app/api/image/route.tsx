@@ -25,16 +25,6 @@ export async function GET() {
   const done = reminders.filter((r) => r.done);
   const all = [...pending, ...done];
 
-  let fontData: ArrayBuffer | null = null;
-  try {
-    const res = await fetch(
-      "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2"
-    );
-    fontData = await res.arrayBuffer();
-  } catch {
-    // fallback to system font
-  }
-
   const now = new Date();
   const updatedStr = now.toLocaleDateString("en-US", {
     month: "short",
@@ -42,13 +32,6 @@ export async function GET() {
     hour: "2-digit",
     minute: "2-digit",
   });
-
-  const COL_PENDING = "#ffffff";
-  const COL_DONE = "#3a3a3a";
-  const COL_NUM_PENDING = "#4a4a4a";
-  const COL_NUM_DONE = "#2a2a2a";
-  const COL_LABEL = "#2a2a2a";
-  const COL_FOOTER = "#222222";
 
   const FONT_LABEL = 26;
   const FONT_ITEM = 44;
@@ -71,7 +54,6 @@ export async function GET() {
           display: "flex",
           flexDirection: "column",
           padding: `${TOP_PAD}px ${SIDE_PAD}px ${BOTTOM_PAD}px`,
-          fontFamily: fontData ? "Inter" : "sans-serif",
         }}
       >
         {/* Header */}
@@ -86,9 +68,8 @@ export async function GET() {
           <span
             style={{
               fontSize: FONT_LABEL,
-              color: COL_LABEL,
+              color: "#2a2a2a",
               letterSpacing: "0.25em",
-              textTransform: "uppercase",
               fontWeight: 400,
             }}
           >
@@ -98,7 +79,7 @@ export async function GET() {
             <span
               style={{
                 fontSize: FONT_LABEL - 4,
-                color: COL_LABEL,
+                color: "#2a2a2a",
                 letterSpacing: "0.1em",
               }}
             >
@@ -113,9 +94,8 @@ export async function GET() {
             <span
               style={{
                 fontSize: FONT_ITEM,
-                color: COL_DONE,
+                color: "#3a3a3a",
                 fontWeight: 300,
-                letterSpacing: "0.02em",
               }}
             >
               Nothing here yet.
@@ -126,17 +106,17 @@ export async function GET() {
                 key={r.id}
                 style={{
                   display: "flex",
-                  alignItems: "baseline",
+                  alignItems: "center",
                   gap: 28,
                   height: LINE_HEIGHT,
                   borderBottom:
-                    i < visible.length - 1 ? "1px solid #111" : "none",
+                    i < visible.length - 1 ? "1px solid #111111" : "none",
                 }}
               >
                 <span
                   style={{
                     fontSize: FONT_NUMBER,
-                    color: r.done ? COL_NUM_DONE : COL_NUM_PENDING,
+                    color: r.done ? "#2a2a2a" : "#4a4a4a",
                     width: 40,
                     textAlign: "right",
                     flexShrink: 0,
@@ -148,12 +128,13 @@ export async function GET() {
                 <span
                   style={{
                     fontSize: FONT_ITEM,
-                    color: r.done ? COL_DONE : COL_PENDING,
+                    color: r.done ? "#3a3a3a" : "#ffffff",
                     fontWeight: r.done ? 300 : 400,
                     textDecoration: r.done ? "line-through" : "none",
                     flex: 1,
                     overflow: "hidden",
                     whiteSpace: "nowrap",
+                    textOverflow: "ellipsis",
                   }}
                 >
                   {r.text}
@@ -164,11 +145,17 @@ export async function GET() {
         </div>
 
         {/* Footer */}
-        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 32 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            paddingTop: 32,
+          }}
+        >
           <span
             style={{
               fontSize: FONT_FOOTER,
-              color: COL_FOOTER,
+              color: "#222222",
               letterSpacing: "0.08em",
             }}
           >
@@ -177,12 +164,6 @@ export async function GET() {
         </div>
       </div>
     ),
-    {
-      width: W,
-      height: H,
-      fonts: fontData
-        ? [{ name: "Inter", data: fontData, style: "normal", weight: 400 }]
-        : [],
-    }
+    { width: W, height: H }
   );
 }
