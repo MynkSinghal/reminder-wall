@@ -72,10 +72,10 @@ export async function GET() {
       >
         {/* ── Header ── */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, height: 50 }}>
-          <span style={{ fontSize: 26, color: ORANGE, letterSpacing: "0.35em", fontWeight: 700 }}>
+          <span style={{ fontSize: 34, color: ORANGE, letterSpacing: "0.35em", fontWeight: 700 }}>
             REMINDERS
           </span>
-          <span style={{ fontSize: 26, color: pending.length > 0 ? ORANGE : MUTED, letterSpacing: "0.1em", fontWeight: 700 }}>
+          <span style={{ fontSize: 34, color: pending.length > 0 ? ORANGE : MUTED, letterSpacing: "0.1em", fontWeight: 700 }}>
             {pending.length} left
           </span>
         </div>
