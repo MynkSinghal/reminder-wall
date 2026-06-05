@@ -46,10 +46,10 @@ export async function GET(request: NextRequest) {
 
   // ── Layout math ──────────────────────────────────────────────
   // Each item = one compact line: "[01]  reminder text"
-  const ITEM_H   = 130;   // height per row (comfortable for 110px text)
+  const ITEM_H   = 140;   // height per row
   const TEXT_PX  = 110;   // reminder text size
-  const NUM_PX   = 26;    // "01" number size
-  const HEADER_H = 90;    // "REMINDERS  ·  N left" + rule
+  const NUM_PX   = 38;    // "01" number size — bigger & aligned
+  const HEADER_H = 100;   // "REMINDERS  ·  N left" + rule
   const GAP      = 0;     // no extra gap — divider lines are enough
 
   const count      = sorted.length;
@@ -72,11 +72,11 @@ export async function GET(request: NextRequest) {
         }}
       >
         {/* ── Header ── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, height: 40 }}>
-          <span style={{ fontSize: 18, color: ORANGE, letterSpacing: "0.35em", fontWeight: 700 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, height: 50 }}>
+          <span style={{ fontSize: 26, color: ORANGE, letterSpacing: "0.35em", fontWeight: 700 }}>
             REMINDERS
           </span>
-          <span style={{ fontSize: 18, color: pending.length > 0 ? ORANGE : MUTED, letterSpacing: "0.1em", fontWeight: 700 }}>
+          <span style={{ fontSize: 26, color: pending.length > 0 ? ORANGE : MUTED, letterSpacing: "0.1em", fontWeight: 700 }}>
             {pending.length} left
           </span>
         </div>
@@ -110,8 +110,8 @@ export async function GET(request: NextRequest) {
                   fontSize: NUM_PX,
                   color: ORANGE,
                   fontWeight: 700,
-                  letterSpacing: "0.08em",
-                  width: 48,
+                  letterSpacing: "0.06em",
+                  width: 64,
                   textAlign: "right",
                   flexShrink: 0,
                   lineHeight: 1,
