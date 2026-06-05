@@ -10,16 +10,23 @@ interface Reminder {
   order: number;
 }
 
+// iPhone 14 Pro native resolution
 const W = 1179;
 const H = 2556;
 
-const ORANGE = "#FF6930";
+// Matching The-Day-Grid layout math exactly:
+// grid start_y = (H/2) - (grid_h/2) + 150 ≈ 798
+// We start our content exactly there so it sits in the same visual zone as the dots.
+const TOP_PAD = 798;
+const SIDE_PAD = 88;
+const BOTTOM_PAD = 160;
+
+const ORANGE = "#FF693C";
+const ORANGE_DIM = "#7A3018";
 const WHITE = "#FFFFFF";
-const DONE_TEXT = "#2e2e2e";
-const DONE_NUM = "#1e1e1e";
-const LABEL_COLOR = "#FF6930";
-const DIVIDER = "#151515";
-const FOOTER_COLOR = "#1c1c1c";
+const GRAY = "#1E1E1E";      // done text
+const DIVIDER = "#141414";
+const FOOTER = "#1A1A1A";
 
 export async function GET() {
   const redis = Redis.fromEnv();
@@ -30,58 +37,22 @@ export async function GET() {
   const done = reminders.filter((r) => r.done);
   const all = [...pending, ...done];
 
-  // Load a handwritten font from Google Fonts
-  let caveatFont: ArrayBuffer | null = null;
-  try {
-    // Fetch CSS with a modern UA to get woff2
-    const css = await fetch(
-      "https://fonts.googleapis.com/css2?family=Caveat:wght@400;700",
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        },
-      }
-    ).then((r) => r.text());
-
-    const urlMatch = css.match(
-      /src:\s*url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/
-    );
-    if (urlMatch?.[1]) {
-      const fontRes = await fetch(urlMatch[1]);
-      if (fontRes.ok) caveatFont = await fontRes.arrayBuffer();
-    }
-  } catch {
-    // fall through to default
-  }
-
-  const fonts = caveatFont
-    ? [{ name: "Caveat", data: caveatFont, style: "normal" as const, weight: 400 as const }]
-    : [];
-
-  const fontFamily = caveatFont ? "Caveat" : "sans-serif";
-
   const now = new Date();
-  const updatedStr = now.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
+  const timeStr = now.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const dateStr = now.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 
-  // Layout constants — iPhone 14 Pro safe zones
-  const TOP_PAD = 210; // below Dynamic Island + time
-  const SIDE_PAD = 80;
-  const BOTTOM_PAD = 150;
-  const ITEM_H = 90;
-  const HEADER_H = 120;
-
-  const usableH = H - TOP_PAD - BOTTOM_PAD - HEADER_H;
-  const maxItems = Math.floor(usableH / ITEM_H);
+  // Each row = 96px; usable height below TOP_PAD minus BOTTOM_PAD minus header
+  const ITEM_H = 96;
+  const HEADER_H = 108;
+  const usable = H - TOP_PAD - BOTTOM_PAD - HEADER_H;
+  const maxItems = Math.floor(usable / ITEM_H);
   const visible = all.slice(0, maxItems);
-
-  const fontSize = caveatFont ? 56 : 44;
-  const numSize = caveatFont ? 36 : 28;
 
   return new ImageResponse(
     (
@@ -96,71 +67,75 @@ export async function GET() {
           paddingLeft: SIDE_PAD,
           paddingRight: SIDE_PAD,
           paddingBottom: BOTTOM_PAD,
-          fontFamily,
         }}
       >
         {/* ── Header ── */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            marginBottom: 48,
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            marginBottom: 20,
           }}
         >
-          <div
+          <span
             style={{
-              display: "flex",
-              alignItems: "baseline",
-              justifyContent: "space-between",
+              fontSize: 24,
+              color: ORANGE,
+              letterSpacing: "0.30em",
+              fontWeight: 700,
+              lineHeight: 1,
             }}
           >
-            <span
-              style={{
-                fontSize: 28,
-                color: LABEL_COLOR,
-                letterSpacing: "0.28em",
-                fontWeight: 700,
-              }}
-            >
-              REMINDERS
-            </span>
-            <span
-              style={{
-                fontSize: 22,
-                color: pending.length > 0 ? ORANGE : DONE_NUM,
-                letterSpacing: "0.1em",
-                opacity: 0.7,
-              }}
-            >
-              {pending.length} pending
-            </span>
-          </div>
-
-          {/* Orange underline */}
-          <div
+            REMINDERS
+          </span>
+          <span
             style={{
-              height: 1,
-              background: ORANGE,
-              marginTop: 18,
-              opacity: 0.35,
-              display: "flex",
+              fontSize: 28,
+              color: pending.length > 0 ? ORANGE : GRAY,
+              letterSpacing: "0.05em",
+              lineHeight: 1,
+              opacity: 0.9,
             }}
-          />
+          >
+            {pending.length} left
+          </span>
         </div>
 
-        {/* ── Reminder Items ── */}
-        <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+        {/* Orange rule */}
+        <div
+          style={{
+            height: 1,
+            background: ORANGE,
+            opacity: 0.25,
+            marginBottom: 12,
+            display: "flex",
+          }}
+        />
+
+        {/* ── Items ── */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+          }}
+        >
           {visible.length === 0 ? (
-            <span
+            <div
               style={{
-                fontSize: fontSize,
-                color: DONE_TEXT,
-                opacity: 0.4,
-                marginTop: 24,
+                display: "flex",
+                alignItems: "center",
+                height: ITEM_H * 2,
+                gap: 28,
               }}
             >
-              nothing yet.
-            </span>
+              <span
+                style={{ fontSize: 52, color: GRAY, letterSpacing: "0.02em" }}
+              >
+                nothing yet.
+              </span>
+            </div>
           ) : (
             visible.map((r, i) => (
               <div
@@ -171,36 +146,36 @@ export async function GET() {
                   height: ITEM_H,
                   gap: 32,
                   borderBottom: `1px solid ${DIVIDER}`,
-                  opacity: r.done ? 0.35 : 1,
+                  opacity: r.done ? 0.22 : 1,
                 }}
               >
-                {/* Number */}
+                {/* Number — orange for pending */}
                 <span
                   style={{
-                    fontSize: numSize,
-                    color: r.done ? DONE_NUM : ORANGE,
-                    width: 44,
+                    fontSize: 30,
+                    color: r.done ? GRAY : ORANGE_DIM,
+                    width: 48,
                     textAlign: "right",
                     flexShrink: 0,
-                    fontWeight: 400,
+                    fontWeight: 700,
                     letterSpacing: "0.02em",
                   }}
                 >
-                  {i + 1}
+                  {String(i + 1).padStart(2, "0")}
                 </span>
 
-                {/* Text */}
+                {/* Reminder text */}
                 <span
                   style={{
-                    fontSize: fontSize,
-                    color: r.done ? DONE_TEXT : WHITE,
+                    fontSize: 52,
+                    color: r.done ? GRAY : WHITE,
+                    fontWeight: r.done ? 400 : 600,
                     textDecoration: r.done ? "line-through" : "none",
-                    fontWeight: 400,
                     flex: 1,
                     overflow: "hidden",
                     whiteSpace: "nowrap",
                     textOverflow: "ellipsis",
-                    letterSpacing: caveatFont ? "0.01em" : "0",
+                    letterSpacing: "-0.01em",
                   }}
                 >
                   {r.text}
@@ -210,10 +185,9 @@ export async function GET() {
                 {r.done && (
                   <span
                     style={{
-                      fontSize: 20,
+                      fontSize: 28,
                       color: ORANGE,
                       flexShrink: 0,
-                      opacity: 0.5,
                     }}
                   >
                     ✓
@@ -228,27 +202,32 @@ export async function GET() {
         <div
           style={{
             display: "flex",
-            justifyContent: "flex-end",
+            justifyContent: "space-between",
             alignItems: "center",
             paddingTop: 28,
           }}
         >
           <span
             style={{
-              fontSize: 20,
-              color: FOOTER_COLOR,
-              letterSpacing: "0.06em",
+              fontSize: 22,
+              color: FOOTER,
+              letterSpacing: "0.05em",
             }}
           >
-            {updatedStr}
+            {dateStr}
+          </span>
+          <span
+            style={{
+              fontSize: 22,
+              color: FOOTER,
+              letterSpacing: "0.05em",
+            }}
+          >
+            {timeStr}
           </span>
         </div>
       </div>
     ),
-    {
-      width: W,
-      height: H,
-      fonts,
-    }
+    { width: W, height: H }
   );
 }
