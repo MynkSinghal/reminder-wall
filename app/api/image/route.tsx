@@ -85,8 +85,8 @@ let _fontExtra: ArrayBuffer | null = null;
 
 async function getFonts(): Promise<{ semi: ArrayBuffer; extra: ArrayBuffer }> {
   const [semi, extra] = await Promise.all([
-    _fontSemi  ?? fetch(`${BG_BASE}/bricolage-grotesque-latin-600-normal.woff2`).then(r => r.arrayBuffer()),
-    _fontExtra ?? fetch(`${BG_BASE}/bricolage-grotesque-latin-800-normal.woff2`).then(r => r.arrayBuffer()),
+    _fontSemi  ?? fetch(`${BG_BASE}/bricolage-grotesque-latin-600-normal.woff`).then(r => r.arrayBuffer()),
+    _fontExtra ?? fetch(`${BG_BASE}/bricolage-grotesque-latin-800-normal.woff`).then(r => r.arrayBuffer()),
   ]);
   _fontSemi  = semi;
   _fontExtra = extra;
