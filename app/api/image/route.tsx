@@ -82,20 +82,24 @@ const SIGN_B64 = "iVBORw0KGgoAAAANSUhEUgAAApsAAAF2CAYAAAAhoFOlAAB9rklEQVR42u2ddb
 // to Liberation Sans — same designer Steve Matteson, same proportions, CDN-stable).
 // Both served as .woff from jsDelivr/fontsource — the only format Satori supports
 // besides TTF/OTF.
-const GABARITO_BASE = "https://cdn.jsdelivr.net/npm/@fontsource/gabarito@5.2.8/files";
-const ARIMO_BASE    = "https://cdn.jsdelivr.net/npm/@fontsource/arimo@5.2.8/files";
+const GABARITO_BASE  = "https://cdn.jsdelivr.net/npm/@fontsource/gabarito@5.2.8/files";
+const ARIMO_BASE     = "https://cdn.jsdelivr.net/npm/@fontsource/arimo@5.2.8/files";
+const IBM_MONO_BASE  = "https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono@5.2.7/files";
 
-let _fontGabarito: ArrayBuffer | null = null;  // Gabarito 900 — reminder body text
-let _fontArimo:    ArrayBuffer | null = null;  // Arimo 700   — header, numbers, meta
+let _fontGabarito: ArrayBuffer | null = null;  // Gabarito 900     — body text
+let _fontArimo:    ArrayBuffer | null = null;  // Arimo 700        — header, meta
+let _fontMono:     ArrayBuffer | null = null;  // IBM Plex Mono 700 — item numbers
 
-async function getFonts(): Promise<{ gabarito: ArrayBuffer; arimo: ArrayBuffer }> {
-  const [gabarito, arimo] = await Promise.all([
+async function getFonts(): Promise<{ gabarito: ArrayBuffer; arimo: ArrayBuffer; mono: ArrayBuffer }> {
+  const [gabarito, arimo, mono] = await Promise.all([
     _fontGabarito ?? fetch(`${GABARITO_BASE}/gabarito-latin-900-normal.woff`).then(r => r.arrayBuffer()),
     _fontArimo    ?? fetch(`${ARIMO_BASE}/arimo-latin-700-normal.woff`).then(r => r.arrayBuffer()),
+    _fontMono     ?? fetch(`${IBM_MONO_BASE}/ibm-plex-mono-latin-700-normal.woff`).then(r => r.arrayBuffer()),
   ]);
   _fontGabarito = gabarito;
   _fontArimo    = arimo;
-  return { gabarito, arimo };
+  _fontMono     = mono;
+  return { gabarito, arimo, mono };
 }
 
 // ── Font-size algorithm (reminder mode) ───────────────────────────────────────
@@ -155,7 +159,7 @@ export async function GET() {
   const timeStr = new Date().toLocaleTimeString("en-US", {
     hour: "2-digit", minute: "2-digit",
   });
-  const { gabarito: fontGabarito, arimo: fontArimo } = await getFonts();
+  const { gabarito: fontGabarito, arimo: fontArimo, mono: fontMono } = await getFonts();
 
   // ── EMPTY STATE: show a daily rotating quote ───────────────────────────────
   if (N === 0) {
@@ -173,16 +177,27 @@ export async function GET() {
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex",
             background: "linear-gradient(180deg,#000 0%,#060606 45%,#030303 70%,#000 100%)" }} />
 
+          {/* Drop cap — giant decorative opening quote watermark */}
+          <div style={{
+            position: "absolute", top: qTop - Math.round(qFont * 2.2),
+            left: SIDE_PAD - Math.round(qFont * 0.18),
+            fontSize: Math.round(qFont * 5.8), color: "rgba(255,105,60,0.10)",
+            fontFamily: "Gabarito", fontWeight: 900, lineHeight: 1,
+            display: "flex", userSelect: "none",
+          }}>
+            {"“"}
+          </div>
+
           <div style={{ display: "flex", flexDirection: "column", paddingTop: qTop,
             paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD, width: "100%", position: "relative" }}>
 
-            {/* Quote text */}
+            {/* Quote text — no opening curly quote here, drop cap handles it */}
             <span style={{
               fontSize: qFont, color: WHITE, fontFamily: "Gabarito", fontWeight: 900,
               letterSpacing: qFont > 72 ? "-0.04em" : "-0.02em",
               lineHeight: 1.18, marginBottom: 60,
             }}>
-              &ldquo;{q}&rdquo;
+              {q}&rdquo;
             </span>
 
             {/* Character — orange, prominent */}
@@ -213,8 +228,9 @@ export async function GET() {
       {
         width: W, height: H,
         fonts: [
-          { name: "Gabarito", data: fontGabarito, style: "normal", weight: 900 },
-          { name: "Arimo",    data: fontArimo,    style: "normal", weight: 700 },
+          { name: "Gabarito",      data: fontGabarito, style: "normal", weight: 900 },
+          { name: "Arimo",         data: fontArimo,    style: "normal", weight: 700 },
+          { name: "IBM Plex Mono", data: fontMono,     style: "normal", weight: 700 },
         ],
         headers: { "Cache-Control": "no-store, max-age=0" },
       },
@@ -260,7 +276,7 @@ export async function GET() {
               <div style={{ width: BAR_W, height: Math.round(itemHeights[i] * 0.45),
                 background: r.done ? "transparent" : ORANGE,
                 borderRadius: 2, flexShrink: 0, marginRight: BAR_MR }} />
-              <span style={{ fontSize: NUM_PX, color: ORANGE, fontFamily: "Arimo", fontWeight: 700, letterSpacing: "0.06em",
+              <span style={{ fontSize: NUM_PX, color: ORANGE, fontFamily: "IBM Plex Mono", fontWeight: 700, letterSpacing: "0.06em",
                 width: NUM_W, textAlign: "right", flexShrink: 0, opacity: r.done ? 0.40 : 1, lineHeight: 1 }}>
                 {String(i + 1).padStart(2, "0")}
               </span>
@@ -284,8 +300,9 @@ export async function GET() {
     {
       width: W, height: H,
       fonts: [
-        { name: "Gabarito", data: fontGabarito, style: "normal", weight: 900 },
-        { name: "Arimo",    data: fontArimo,    style: "normal", weight: 700 },
+        { name: "Gabarito",      data: fontGabarito, style: "normal", weight: 900 },
+        { name: "Arimo",         data: fontArimo,    style: "normal", weight: 700 },
+        { name: "IBM Plex Mono", data: fontMono,     style: "normal", weight: 700 },
       ],
       headers: { "Cache-Control": "no-store, max-age=0" },
     },
