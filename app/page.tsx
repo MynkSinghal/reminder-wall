@@ -302,35 +302,28 @@ export default function Home() {
     const oldIndex = sorted.findIndex((r) => r.id === active.id);
     const newIndex = sorted.findIndex((r) => r.id === over.id);
     const reordered = arrayMove(sorted, oldIndex, newIndex);
+    const orderedIds = reordered.map((r) => r.id);
 
-    // Assign fresh sequential order values
+    // Optimistic update — assign sequential order values locally
     const updated = reordered.map((r, i) => ({ ...r, order: i }));
-
-    // Optimistic update
     setReminders((prev) => {
       const map = new Map(updated.map((r) => [r.id, r]));
       return prev.map((r) => map.get(r.id) ?? r);
     });
 
-    // Only PATCH items whose order actually changed
-    const changed = updated.filter((r) => {
-      const orig = reminders.find((x) => x.id === r.id);
-      return orig && orig.order !== r.order;
-    });
-
+    // Single atomic PUT — avoids concurrent-PATCH race conditions
     try {
-      await Promise.all(
-        changed.map((r) =>
-          fetch(`/api/reminders/${r.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ order: r.order }),
-          }).then((res) => { if (!res.ok) throw new Error(); })
-        )
-      );
+      const res = await fetch("/api/reminders", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderedIds }),
+      });
+      if (!res.ok) throw new Error();
+      const serverData = await res.json();
+      // Reconcile with server-assigned order values
+      setReminders(serverData);
     } catch {
-      // revert to original on error
-      setReminders([...reminders]);
+      setReminders([...reminders]); // revert
     } finally {
       isMoving.current = false;
     }

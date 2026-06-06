@@ -36,3 +36,21 @@ export async function POST(req: Request) {
   await redis.set(KEY, reminders);
   return NextResponse.json(newReminder, { status: 201 });
 }
+
+// Batch reorder — accepts { orderedIds: string[] } and assigns sequential
+// order values in one atomic Redis write, avoiding race conditions from
+// firing concurrent individual PATCHes.
+export async function PUT(req: Request) {
+  const { orderedIds } = await req.json() as { orderedIds: string[] };
+  if (!Array.isArray(orderedIds)) {
+    return NextResponse.json({ error: "orderedIds array required" }, { status: 400 });
+  }
+  const reminders = await getAll();
+  const posMap = new Map(orderedIds.map((id, i) => [id, i]));
+  const updated = reminders.map((r) => ({
+    ...r,
+    order: posMap.has(r.id) ? posMap.get(r.id)! : r.order,
+  }));
+  await redis.set(KEY, updated);
+  return NextResponse.json(updated);
+}
