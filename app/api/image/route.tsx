@@ -183,10 +183,8 @@ export async function GET() {
             background: "linear-gradient(180deg,#000 0%,#060606 45%,#030303 70%,#000 100%)" }} />
 
           {/* Bottom bleed */}
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 600, display: "flex",
-            background: "linear-gradient(to top,rgba(255,105,60,0.16) 0%,rgba(255,105,60,0.05) 38%,transparent 100%)" }} />
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, display: "flex",
-            background: "rgba(255,105,60,0.55)" }} />
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1100, display: "flex",
+            background: "linear-gradient(to top,rgba(255,105,60,0.28) 0%,rgba(255,105,60,0.10) 35%,rgba(255,105,60,0.02) 65%,transparent 100%)" }} />
 
           <div style={{ display: "flex", flexDirection: "column", paddingTop: qTop,
             paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD, width: "100%", position: "relative" }}>
