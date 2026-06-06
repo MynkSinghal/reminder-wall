@@ -241,16 +241,41 @@ export default function Home() {
     }
   }
 
-  // ── Delete (optimistic) ──────────────────────────────────────────────────────
-  async function deleteReminder(id: string) {
-    const snapshot = [...reminders];
-    setReminders((prev) => prev.filter((x) => x.id !== id));
+  // ── Delete (optimistic + batched to prevent concurrent-write race) ───────────
+  // Each click immediately removes the item from UI state, then queues the ID.
+  // After a 50ms debounce, all queued IDs are sent in a single atomic batch
+  // DELETE to /api/reminders — one read-filter-write instead of N concurrent ones.
+  const pendingDeleteIds = useRef<Set<string>>(new Set());
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function flushDeletes() {
+    const ids = [...pendingDeleteIds.current];
+    pendingDeleteIds.current.clear();
+    deleteTimer.current = null;
+    if (ids.length === 0) return;
     try {
-      const res = await fetch(`/api/reminders/${id}`, { method: "DELETE" });
+      const res = await fetch("/api/reminders", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
       if (!res.ok) throw new Error();
     } catch {
-      setReminders(snapshot);
+      // On failure, reload from server to restore true state
+      fetch("/api/reminders")
+        .then((r) => r.json())
+        .then((data) => setReminders(data))
+        .catch(() => {});
     }
+  }
+
+  function deleteReminder(id: string) {
+    // Optimistic: remove from UI immediately
+    setReminders((prev) => prev.filter((x) => x.id !== id));
+    // Queue the ID and (re)start the debounce timer
+    pendingDeleteIds.current.add(id);
+    if (deleteTimer.current) clearTimeout(deleteTimer.current);
+    deleteTimer.current = setTimeout(flushDeletes, 50);
   }
 
   // ── Inline edit ──────────────────────────────────────────────────────────────

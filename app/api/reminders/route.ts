@@ -37,6 +37,22 @@ export async function POST(req: Request) {
   return NextResponse.json(newReminder, { status: 201 });
 }
 
+// Batch delete — accepts { ids: string[] } and removes all matching items in
+// one atomic read-filter-write. Prevents the race condition where concurrent
+// individual DELETEs all read the same blob, each removing only their own item,
+// with the last write winning and restoring everything else.
+export async function DELETE(req: Request) {
+  const { ids } = await req.json() as { ids: string[] };
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return NextResponse.json({ error: "ids array required" }, { status: 400 });
+  }
+  const idSet = new Set(ids);
+  const reminders = await getAll();
+  const filtered = reminders.filter((r) => !idSet.has(r.id));
+  await redis.set(KEY, filtered);
+  return NextResponse.json({ ok: true, removed: ids.length });
+}
+
 // Batch reorder — accepts { orderedIds: string[] } and assigns sequential
 // order values in one atomic Redis write, avoiding race conditions from
 // firing concurrent individual PATCHes.

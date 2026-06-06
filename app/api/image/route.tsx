@@ -177,11 +177,11 @@ export async function GET() {
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex",
             background: "linear-gradient(180deg,#000 0%,#060606 45%,#030303 70%,#000 100%)" }} />
 
-          {/* Drop cap — giant decorative opening quote watermark */}
+          {/* Drop cap — huge decorative opening quote watermark behind text */}
           <div style={{
-            position: "absolute", top: qTop - Math.round(qFont * 2.2),
-            left: SIDE_PAD - Math.round(qFont * 0.18),
-            fontSize: Math.round(qFont * 5.8), color: "rgba(255,105,60,0.10)",
+            position: "absolute", top: qTop - Math.round(qFont * 1.4),
+            left: SIDE_PAD - Math.round(qFont * 0.22),
+            fontSize: Math.round(qFont * 7.5), color: "rgba(255,105,60,0.18)",
             fontFamily: "Gabarito", fontWeight: 900, lineHeight: 1,
             display: "flex", userSelect: "none",
           }}>
@@ -191,13 +191,13 @@ export async function GET() {
           <div style={{ display: "flex", flexDirection: "column", paddingTop: qTop,
             paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD, width: "100%", position: "relative" }}>
 
-            {/* Quote text — no opening curly quote here, drop cap handles it */}
+            {/* Quote text */}
             <span style={{
               fontSize: qFont, color: WHITE, fontFamily: "Gabarito", fontWeight: 900,
               letterSpacing: qFont > 72 ? "-0.04em" : "-0.02em",
               lineHeight: 1.18, marginBottom: 60,
             }}>
-              {q}&rdquo;
+              &ldquo;{q}&rdquo;
             </span>
 
             {/* Character — orange, prominent */}
@@ -210,7 +210,7 @@ export async function GET() {
 
             {/* Show name — small, dimmed */}
             <span style={{
-              fontSize: 24, color: "#2a2a2a", fontFamily: "Arimo", fontWeight: 700, letterSpacing: "0.18em",
+              fontSize: 24, color: "#555555", fontFamily: "Arimo", fontWeight: 700, letterSpacing: "0.18em",
             }}>
               {s.toUpperCase()}
             </span>
