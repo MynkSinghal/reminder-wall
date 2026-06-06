@@ -291,9 +291,10 @@ export async function GET() {
             </div>
           ))}
 
-          {/* Footer */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end",
-            marginTop: 22, height: FOOTER_H - 22 }}>
+          {/* Footer — absolutely pinned, never moves with reminder count */}
+          <div style={{ position: "absolute", bottom: H - SAFE_BOTTOM + 10,
+            left: SIDE_PAD, right: SIDE_PAD,
+            display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <span style={{ fontSize: 17, color: "#1c1c1c", fontFamily: "Arimo", fontWeight: 700, letterSpacing: "0.08em" }}>{timeStr}</span>
             <SignatureEl />
           </div>
