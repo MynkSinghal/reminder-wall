@@ -72,6 +72,16 @@ const QUOTES = [
   { q: "All in the game, yo. All in the game.", c: "OMAR LITTLE", s: "The Wire" },
   { q: "I'm gonna make him an offer he can't refuse.", c: "DON CORLEONE", s: "The Godfather" },
   { q: "Keep your friends close, but your enemies closer.", c: "MICHAEL CORLEONE", s: "The Godfather" },
+  { q: "You see, in this world there's two kinds of people, my friend: those with loaded guns and those who dig. You dig.", c: "BLONDIE", s: "The Good, the Bad and the Ugly" },
+  { q: "You either die a hero or live long enough to see yourself become the villain.", c: "HARVEY DENT", s: "The Dark Knight" },
+  { q: "The devil doesn't come dressed in a red cape and pointy horns. He comes as everything you've ever wished for.", c: "TUCKER MAX", s: "Tucker Max" },
+  { q: "Money is a scoreboard where you can rank how you're doing against other people.", c: "MARK CUBAN", s: "Mark Cuban" },
+  { q: "People don't want the truth because they don't want their illusions destroyed.", c: "FRIEDRICH NIETZSCHE", s: "Nietzsche" },
+  { q: "Nearly all men can stand adversity, but if you want to test a man's character, give him power.", c: "ABRAHAM LINCOLN", s: "Abraham Lincoln" },
+  { q: "The man who reads nothing at all is better educated than the man who reads nothing but newspapers.", c: "THOMAS JEFFERSON", s: "Thomas Jefferson" },
+  { q: "A cynic is a man who knows the price of everything and the value of nothing.", c: "OSCAR WILDE", s: "Oscar Wilde" },
+  { q: "Man is least himself when he talks in his own person. Give him a mask, and he will tell you the truth.", c: "OSCAR WILDE", s: "Oscar Wilde" },
+  { q: "The stupid neither forgive nor forget; the naive forgive and forget; the wise forgive but do not forget.", c: "THOMAS SZASZ", s: "Thomas Szasz" },
 ];
 
 // ── Assets ────────────────────────────────────────────────────────────────────
@@ -129,13 +139,8 @@ function computeLayout(
   };
 }
 
-// ── Quote font size (based on length) ─────────────────────────────────────────
-function quoteFontSize(len: number): number {
-  if (len < 40)  return 90;
-  if (len < 70)  return 76;
-  if (len < 100) return 64;
-  return 54;
-}
+// ── Quote font size — fixed regardless of length ──────────────────────────────
+const QUOTE_FONT = 72;
 
 // ── Signature — pre-rotated by user, source 667×374 ──────────────────────────
 const SIGN_W = 400;
@@ -156,16 +161,16 @@ export async function GET() {
   const pending = sorted.filter(r => !r.done);
   const N       = sorted.length;
 
-  const timeStr = new Date().toLocaleTimeString("en-US", {
-    hour: "2-digit", minute: "2-digit",
-  });
+  const now     = new Date();
+  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  const dayName = now.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
   const { gabarito: fontGabarito, arimo: fontArimo, mono: fontMono } = await getFonts();
 
   // ── EMPTY STATE: show a daily rotating quote ───────────────────────────────
   if (N === 0) {
     const dayIdx = Math.floor(Math.random() * QUOTES.length);
     const { q, c, s } = QUOTES[dayIdx];
-    const qFont  = quoteFontSize(q.length);
+    const qFont  = QUOTE_FONT;
     const qLines = Math.max(1, Math.ceil(q.length / Math.floor(TEXT_W / (qFont * 0.54))));
     const quoteBlockH = qLines * qFont * 1.18 + 60 + 38 + 16 + 28; // text + gap + character + gap + show
     const safeH  = SAFE_BOTTOM - SAFE_TOP;
@@ -176,17 +181,6 @@ export async function GET() {
         <div style={{ width: W, height: H, background: "#000", display: "flex", fontFamily: "Gabarito", position: "relative" }}>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex",
             background: "linear-gradient(180deg,#000 0%,#060606 45%,#030303 70%,#000 100%)" }} />
-
-          {/* Drop cap — huge decorative opening quote watermark behind text */}
-          <div style={{
-            position: "absolute", top: qTop - Math.round(qFont * 1.4),
-            left: SIDE_PAD - Math.round(qFont * 0.22),
-            fontSize: Math.round(qFont * 7.5), color: "rgba(255,105,60,0.18)",
-            fontFamily: "Gabarito", fontWeight: 900, lineHeight: 1,
-            display: "flex", userSelect: "none",
-          }}>
-            {"“"}
-          </div>
 
           <div style={{ display: "flex", flexDirection: "column", paddingTop: qTop,
             paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD, width: "100%", position: "relative" }}>
@@ -259,7 +253,7 @@ export async function GET() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 50, marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{ width: 7, height: 7, background: ORANGE, borderRadius: "50%", display: "flex", flexShrink: 0 }} />
-              <span style={{ fontSize: 26, color: ORANGE, letterSpacing: "0.40em", fontFamily: "Arimo", fontWeight: 700 }}>REMINDERS</span>
+              <span style={{ fontSize: 26, color: ORANGE, letterSpacing: "0.40em", fontFamily: "Arimo", fontWeight: 700 }}>{dayName}</span>
             </div>
             <span style={{ fontSize: 26, color: pending.length > 0 ? ORANGE : "#2e2e2e", letterSpacing: "0.08em", fontFamily: "Arimo", fontWeight: 700 }}>
               {pending.length > 0 ? `${pending.length} left` : "all done  ✓"}
@@ -277,7 +271,8 @@ export async function GET() {
                 background: r.done ? "transparent" : ORANGE,
                 borderRadius: 2, flexShrink: 0, marginRight: BAR_MR }} />
               <span style={{ fontSize: NUM_PX, color: ORANGE, fontFamily: "IBM Plex Mono", fontWeight: 700, letterSpacing: "0.06em",
-                width: NUM_W, textAlign: "right", flexShrink: 0, opacity: r.done ? 0.40 : 1, lineHeight: 1 }}>
+                width: NUM_W, textAlign: "right", flexShrink: 0, opacity: r.done ? 0.25 : 1, lineHeight: 1,
+                textShadow: r.done ? "none" : "0 0 14px rgba(255,105,60,0.75)" }}>
                 {String(i + 1).padStart(2, "0")}
               </span>
               <div style={{ width: COL_GAP, flexShrink: 0 }} />
