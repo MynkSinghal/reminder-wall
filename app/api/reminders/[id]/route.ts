@@ -18,7 +18,13 @@ export async function PATCH(
   if (idx === -1) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
-  reminders[idx] = { ...reminders[idx], ...body };
+  // Whitelist only allowed fields — never let callers overwrite id or inject arbitrary keys
+  const { done, text, order } = body as { done?: boolean; text?: string; order?: number };
+  const update: Partial<Reminder> = {};
+  if (done  !== undefined) update.done  = Boolean(done);
+  if (text  !== undefined) update.text  = String(text).trim();
+  if (order !== undefined) update.order = Number(order);
+  reminders[idx] = { ...reminders[idx], ...update };
   await redis.set(KEY, reminders);
   return NextResponse.json(reminders[idx]);
 }
