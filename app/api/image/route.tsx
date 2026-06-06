@@ -146,7 +146,9 @@ export async function GET() {
 
   // ── EMPTY STATE: show a daily rotating quote ───────────────────────────────
   if (N === 0) {
-    const dayIdx = Math.floor(Date.now() / 86400000) % QUOTES.length;
+    // IST = UTC+5:30 = +19800 seconds. Shift timestamp so the day rolls at midnight IST.
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+    const dayIdx = Math.floor((Date.now() + IST_OFFSET_MS) / 86400000) % QUOTES.length;
     const { q, c, s } = QUOTES[dayIdx];
     const qFont  = quoteFontSize(q.length);
     const qLines = Math.max(1, Math.ceil(q.length / Math.floor(TEXT_W / (qFont * 0.54))));
@@ -197,7 +199,11 @@ export async function GET() {
           </div>
         </div>
       ),
-      { width: W, height: H, fonts: [{ name: "Inter", data: fontData, style: "normal", weight: 700 }] },
+      {
+        width: W, height: H,
+        fonts: [{ name: "Inter", data: fontData, style: "normal", weight: 700 }],
+        headers: { "Cache-Control": "no-store, max-age=0" },
+      },
     );
   }
 
@@ -261,6 +267,10 @@ export async function GET() {
         </div>
       </div>
     ),
-    { width: W, height: H, fonts: [{ name: "Inter", data: fontData, style: "normal", weight: 700 }] },
+    {
+      width: W, height: H,
+      fonts: [{ name: "Inter", data: fontData, style: "normal", weight: 700 }],
+      headers: { "Cache-Control": "no-store, max-age=0" },
+    },
   );
 }
