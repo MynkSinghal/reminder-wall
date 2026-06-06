@@ -146,9 +146,7 @@ export async function GET() {
 
   // ── EMPTY STATE: show a daily rotating quote ───────────────────────────────
   if (N === 0) {
-    // IST = UTC+5:30 = +19800 seconds. Shift timestamp so the day rolls at midnight IST.
-    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-    const dayIdx = Math.floor((Date.now() + IST_OFFSET_MS) / 86400000) % QUOTES.length;
+    const dayIdx = Math.floor(Math.random() * QUOTES.length);
     const { q, c, s } = QUOTES[dayIdx];
     const qFont  = quoteFontSize(q.length);
     const qLines = Math.max(1, Math.ceil(q.length / Math.floor(TEXT_W / (qFont * 0.54))));
