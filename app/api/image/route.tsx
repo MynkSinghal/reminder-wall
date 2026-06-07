@@ -286,7 +286,7 @@ export async function GET() {
           {displayed.map((r, i) => (
             <div key={r.id} style={{ display: "flex", alignItems: "center", height: itemHeights[i],
               borderBottom: (i < DN - 1 || hasOverflow) ? "1px solid #0A0A0A" : "none" }}>
-              <div style={{ width: BAR_W, height: Math.round(itemHeights[i] * 0.45),
+              <div style={{ width: BAR_W, alignSelf: "stretch",
                 background: r.done ? "transparent" : ORANGE,
                 borderRadius: 2, flexShrink: 0, marginRight: BAR_MR }} />
               <span style={{ fontSize: NUM_PX, color: ORANGE, fontFamily: "IBM Plex Mono", fontWeight: 700, letterSpacing: "0.06em",
