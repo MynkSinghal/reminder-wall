@@ -122,27 +122,24 @@ function computeLayout(
   items: { text: string }[],
   textW: number,
   availH: number,
-): { fontSize: number; itemHeights: number[] } {
-  if (items.length === 0) return { fontSize: FONT_MAX, itemHeights: [] };
+): { fontSize: number; itemHeights: number[]; lineCounts: number[] } {
+  if (items.length === 0) return { fontSize: FONT_MAX, itemHeights: [], lineCounts: [] };
   const lineRatio = (lines: number) =>
     lines === 1 ? RATIO_1LN : lines === 2 ? RATIO_2LN : RATIO_3LN;
   for (let F = FONT_MAX; F >= FONT_MIN; F -= 2) {
-    const cpl     = Math.max(1, Math.floor(textW / (F * CHAR_RATIO)));
-    const heights = items.map(({ text }) => {
-      const lines = Math.min(3, Math.max(1, Math.ceil(text.length / cpl)));
-      return Math.round(F * lineRatio(lines));
-    });
+    const cpl    = Math.max(1, Math.floor(textW / (F * CHAR_RATIO)));
+    const counts = items.map(({ text }) => Math.min(3, Math.max(1, Math.ceil(text.length / cpl))));
+    const heights = counts.map(lines => Math.round(F * lineRatio(lines)));
     if (heights.reduce((a, b) => a + b, 0) <= availH) {
-      return { fontSize: F, itemHeights: heights };
+      return { fontSize: F, itemHeights: heights, lineCounts: counts };
     }
   }
-  const cpl = Math.max(1, Math.floor(textW / (FONT_MIN * CHAR_RATIO)));
+  const cpl    = Math.max(1, Math.floor(textW / (FONT_MIN * CHAR_RATIO)));
+  const counts = items.map(({ text }) => Math.min(3, Math.max(1, Math.ceil(text.length / cpl))));
   return {
     fontSize: FONT_MIN,
-    itemHeights: items.map(({ text }) => {
-      const lines = Math.min(3, Math.max(1, Math.ceil(text.length / cpl)));
-      return Math.round(FONT_MIN * lineRatio(lines));
-    }),
+    itemHeights: counts.map(lines => Math.round(FONT_MIN * lineRatio(lines))),
+    lineCounts: counts,
   };
 }
 
@@ -247,7 +244,7 @@ export async function GET() {
   const hiddenCount = Math.max(0, sorted.length - MAX_DISPLAY);
   const hasOverflow = hiddenCount > 0;
   const availH  = SAFE_BOTTOM - SAFE_TOP - HEADER_H - FOOTER_H - (hasOverflow ? OVERFLOW_ROW_H : 0);
-  const { fontSize, itemHeights } = computeLayout(displayed, TEXT_W, availH);
+  const { fontSize, itemHeights, lineCounts } = computeLayout(displayed, TEXT_W, availH);
   const NUM_PX  = Math.max(22, Math.round(fontSize * 0.35));
   const totalItemH = itemHeights.reduce((a, b) => a + b, 0);
   const blockH  = HEADER_H + totalItemH + (hasOverflow ? OVERFLOW_ROW_H : 0) + FOOTER_H;
@@ -286,7 +283,7 @@ export async function GET() {
           {displayed.map((r, i) => (
             <div key={r.id} style={{ display: "flex", alignItems: "center", height: itemHeights[i],
               borderBottom: (i < DN - 1 || hasOverflow) ? "1px solid #0A0A0A" : "none" }}>
-              <div style={{ width: BAR_W, alignSelf: "stretch",
+              <div style={{ width: BAR_W, height: Math.round(lineCounts[i] * fontSize * 1.15),
                 background: r.done ? "transparent" : ORANGE,
                 borderRadius: 2, flexShrink: 0, marginRight: BAR_MR }} />
               <span style={{ fontSize: NUM_PX, color: ORANGE, fontFamily: "IBM Plex Mono", fontWeight: 700, letterSpacing: "0.06em",
