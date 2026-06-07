@@ -39,6 +39,11 @@ const FONT_MIN   = 34;
 const CHAR_RATIO = 0.62;
 const RATIO_1LN  = 1.40;
 const RATIO_2LN  = 2.70;
+const RATIO_3LN  = 4.00;   // 3 lines of text + padding
+
+// ── Display cap — prevents cramped layouts with many items ────────────────────
+const MAX_DISPLAY    = 6;   // max items rendered on screen
+const OVERFLOW_ROW_H = 56;  // height reserved for "+ X more" indicator
 
 // ── Quotes (shown when reminder list is empty) ────────────────────────────────
 const QUOTES = [
@@ -119,11 +124,13 @@ function computeLayout(
   availH: number,
 ): { fontSize: number; itemHeights: number[] } {
   if (items.length === 0) return { fontSize: FONT_MAX, itemHeights: [] };
+  const lineRatio = (lines: number) =>
+    lines === 1 ? RATIO_1LN : lines === 2 ? RATIO_2LN : RATIO_3LN;
   for (let F = FONT_MAX; F >= FONT_MIN; F -= 2) {
     const cpl     = Math.max(1, Math.floor(textW / (F * CHAR_RATIO)));
     const heights = items.map(({ text }) => {
-      const lines = Math.min(2, Math.max(1, Math.ceil(text.length / cpl)));
-      return Math.round(F * (lines === 1 ? RATIO_1LN : RATIO_2LN));
+      const lines = Math.min(3, Math.max(1, Math.ceil(text.length / cpl)));
+      return Math.round(F * lineRatio(lines));
     });
     if (heights.reduce((a, b) => a + b, 0) <= availH) {
       return { fontSize: F, itemHeights: heights };
@@ -133,8 +140,8 @@ function computeLayout(
   return {
     fontSize: FONT_MIN,
     itemHeights: items.map(({ text }) => {
-      const lines = Math.min(2, Math.max(1, Math.ceil(text.length / cpl)));
-      return Math.round(FONT_MIN * (lines === 1 ? RATIO_1LN : RATIO_2LN));
+      const lines = Math.min(3, Math.max(1, Math.ceil(text.length / cpl)));
+      return Math.round(FONT_MIN * lineRatio(lines));
     }),
   };
 }
@@ -236,13 +243,17 @@ export async function GET() {
   }
 
   // ── REMINDER MODE ─────────────────────────────────────────────────────────
-  const availH  = SAFE_BOTTOM - SAFE_TOP - HEADER_H - FOOTER_H;
-  const { fontSize, itemHeights } = computeLayout(sorted, TEXT_W, availH);
+  const displayed   = sorted.slice(0, MAX_DISPLAY);
+  const hiddenCount = Math.max(0, sorted.length - MAX_DISPLAY);
+  const hasOverflow = hiddenCount > 0;
+  const availH  = SAFE_BOTTOM - SAFE_TOP - HEADER_H - FOOTER_H - (hasOverflow ? OVERFLOW_ROW_H : 0);
+  const { fontSize, itemHeights } = computeLayout(displayed, TEXT_W, availH);
   const NUM_PX  = Math.max(22, Math.round(fontSize * 0.35));
   const totalItemH = itemHeights.reduce((a, b) => a + b, 0);
-  const blockH  = HEADER_H + totalItemH + FOOTER_H;
+  const blockH  = HEADER_H + totalItemH + (hasOverflow ? OVERFLOW_ROW_H : 0) + FOOTER_H;
   const topPad  = Math.max(SAFE_TOP, Math.min(Math.floor(H / 2 - blockH / 2), SAFE_BOTTOM - blockH));
   const textLS  = fontSize > 72 ? "-0.04em" : fontSize > 50 ? "-0.02em" : "-0.01em";
+  const DN      = displayed.length;
 
   return new ImageResponse(
     (
@@ -271,10 +282,10 @@ export async function GET() {
           {/* Divider */}
           <div style={{ height: 1, background: ORANGE, opacity: 0.2, marginBottom: 22, display: "flex" }} />
 
-          {/* Reminder rows */}
-          {sorted.map((r, i) => (
+          {/* Reminder rows — capped at MAX_DISPLAY */}
+          {displayed.map((r, i) => (
             <div key={r.id} style={{ display: "flex", alignItems: "center", height: itemHeights[i],
-              borderBottom: i < N - 1 ? "1px solid #0A0A0A" : "none" }}>
+              borderBottom: (i < DN - 1 || hasOverflow) ? "1px solid #0A0A0A" : "none" }}>
               <div style={{ width: BAR_W, height: Math.round(itemHeights[i] * 0.45),
                 background: r.done ? "transparent" : ORANGE,
                 borderRadius: 2, flexShrink: 0, marginRight: BAR_MR }} />
@@ -290,6 +301,19 @@ export async function GET() {
               </span>
             </div>
           ))}
+
+          {/* Overflow indicator — shown when total items > MAX_DISPLAY */}
+          {hasOverflow && (
+            <div style={{ display: "flex", alignItems: "center", height: OVERFLOW_ROW_H }}>
+              <div style={{ width: BAR_W, flexShrink: 0, marginRight: BAR_MR }} />
+              <div style={{ width: NUM_W, flexShrink: 0 }} />
+              <div style={{ width: COL_GAP, flexShrink: 0 }} />
+              <span style={{ fontSize: Math.max(28, Math.round(fontSize * 0.40)), color: "#2e2e2e",
+                fontFamily: "Arimo", fontWeight: 700, letterSpacing: "0.10em" }}>
+                + {hiddenCount} more
+              </span>
+            </div>
+          )}
 
           {/* Footer — absolutely pinned, never moves with reminder count */}
           <div style={{ position: "absolute", bottom: H - SAFE_BOTTOM + 10,
