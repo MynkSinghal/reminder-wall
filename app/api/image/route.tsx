@@ -198,7 +198,7 @@ export async function GET() {
 
             {/* Quote text */}
             <span style={{
-              fontSize: qFont, color: WHITE, fontFamily: "Gabarito", fontWeight: 900,
+              fontSize: qFont, color: WHITE, fontFamily: "GabaritoReg", fontWeight: 400,
               letterSpacing: qFont > 72 ? "-0.04em" : "-0.02em",
               lineHeight: 1.18, marginBottom: 60,
             }}>
