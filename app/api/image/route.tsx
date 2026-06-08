@@ -233,7 +233,7 @@ export async function GET() {
         width: W, height: H,
         fonts: [
           { name: "Gabarito",      data: fontGabarito,    style: "normal", weight: 900 },
-          { name: "Gabarito",      data: fontGabaritoReg, style: "normal", weight: 400 },
+          { name: "GabaritoReg",   data: fontGabaritoReg, style: "normal", weight: 400 },
           { name: "Arimo",         data: fontArimo,       style: "normal", weight: 700 },
           { name: "IBM Plex Mono", data: fontMono,        style: "normal", weight: 700 },
         ],
@@ -295,7 +295,7 @@ export async function GET() {
                 {String(i + 1).padStart(2, "0")}
               </span>
               <div style={{ width: COL_GAP, flexShrink: 0 }} />
-              <span style={{ fontSize, color: r.done ? DONE_C : WHITE, fontFamily: "Gabarito", fontWeight: 400, letterSpacing: textLS,
+              <span style={{ fontSize, color: r.done ? DONE_C : WHITE, fontFamily: "GabaritoReg", fontWeight: 400, letterSpacing: textLS,
                 textDecoration: r.done ? "line-through" : "none", flex: 1, lineHeight: 1.15 }}>
                 {r.text}
               </span>
@@ -327,8 +327,9 @@ export async function GET() {
     {
       width: W, height: H,
       fonts: [
-        { name: "Gabarito",      data: fontGabarito, style: "normal", weight: 900 },
-        { name: "Arimo",         data: fontArimo,    style: "normal", weight: 700 },
+        { name: "Gabarito",      data: fontGabarito,    style: "normal", weight: 900 },
+        { name: "GabaritoReg",   data: fontGabaritoReg, style: "normal", weight: 400 },
+        { name: "Arimo",         data: fontArimo,       style: "normal", weight: 700 },
         { name: "IBM Plex Mono", data: fontMono,     style: "normal", weight: 700 },
       ],
       headers: { "Cache-Control": "no-store, max-age=0" },
