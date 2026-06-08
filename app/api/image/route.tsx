@@ -218,11 +218,10 @@ export async function GET() {
             </span>
           </div>
 
-          {/* Footer: timestamp + signature */}
+          {/* Footer: signature centered */}
           <div style={{ position: "absolute", bottom: H - SAFE_BOTTOM + 10,
-            left: SIDE_PAD, right: SIDE_PAD,
-            display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <span style={{ fontSize: 17, color: "#1c1c1c", fontFamily: "Arimo", fontWeight: 700, letterSpacing: "0.08em" }}>{timeStr}</span>
+            left: 0, right: 0,
+            display: "flex", justifyContent: "center", alignItems: "flex-end" }}>
             <SignatureEl />
           </div>
         </div>
@@ -312,11 +311,10 @@ export async function GET() {
             </div>
           )}
 
-          {/* Footer — absolutely pinned, never moves with reminder count */}
+          {/* Footer: signature centered */}
           <div style={{ position: "absolute", bottom: H - SAFE_BOTTOM + 10,
-            left: SIDE_PAD, right: SIDE_PAD,
-            display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <span style={{ fontSize: 17, color: "#1c1c1c", fontFamily: "Arimo", fontWeight: 700, letterSpacing: "0.08em" }}>{timeStr}</span>
+            left: 0, right: 0,
+            display: "flex", justifyContent: "center", alignItems: "flex-end" }}>
             <SignatureEl />
           </div>
         </div>
