@@ -101,20 +101,23 @@ const GABARITO_BASE  = "https://cdn.jsdelivr.net/npm/@fontsource/gabarito@5.2.8/
 const ARIMO_BASE     = "https://cdn.jsdelivr.net/npm/@fontsource/arimo@5.2.8/files";
 const IBM_MONO_BASE  = "https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono@5.2.7/files";
 
-let _fontGabarito: ArrayBuffer | null = null;  // Gabarito 900     — body text
-let _fontArimo:    ArrayBuffer | null = null;  // Arimo 700        — header, meta
-let _fontMono:     ArrayBuffer | null = null;  // IBM Plex Mono 700 — item numbers
+let _fontGabarito:    ArrayBuffer | null = null;  // Gabarito 900     — quote text
+let _fontGabaritoReg: ArrayBuffer | null = null;  // Gabarito 400     — reminder items
+let _fontArimo:       ArrayBuffer | null = null;  // Arimo 700        — header, meta
+let _fontMono:        ArrayBuffer | null = null;  // IBM Plex Mono 700 — item numbers
 
-async function getFonts(): Promise<{ gabarito: ArrayBuffer; arimo: ArrayBuffer; mono: ArrayBuffer }> {
-  const [gabarito, arimo, mono] = await Promise.all([
-    _fontGabarito ?? fetch(`${GABARITO_BASE}/gabarito-latin-900-normal.woff`).then(r => r.arrayBuffer()),
-    _fontArimo    ?? fetch(`${ARIMO_BASE}/arimo-latin-700-normal.woff`).then(r => r.arrayBuffer()),
-    _fontMono     ?? fetch(`${IBM_MONO_BASE}/ibm-plex-mono-latin-700-normal.woff`).then(r => r.arrayBuffer()),
+async function getFonts(): Promise<{ gabarito: ArrayBuffer; gabaritoReg: ArrayBuffer; arimo: ArrayBuffer; mono: ArrayBuffer }> {
+  const [gabarito, gabaritoReg, arimo, mono] = await Promise.all([
+    _fontGabarito    ?? fetch(`${GABARITO_BASE}/gabarito-latin-900-normal.woff`).then(r => r.arrayBuffer()),
+    _fontGabaritoReg ?? fetch(`${GABARITO_BASE}/gabarito-latin-400-normal.woff`).then(r => r.arrayBuffer()),
+    _fontArimo       ?? fetch(`${ARIMO_BASE}/arimo-latin-700-normal.woff`).then(r => r.arrayBuffer()),
+    _fontMono        ?? fetch(`${IBM_MONO_BASE}/ibm-plex-mono-latin-700-normal.woff`).then(r => r.arrayBuffer()),
   ]);
-  _fontGabarito = gabarito;
-  _fontArimo    = arimo;
-  _fontMono     = mono;
-  return { gabarito, arimo, mono };
+  _fontGabarito    = gabarito;
+  _fontGabaritoReg = gabaritoReg;
+  _fontArimo       = arimo;
+  _fontMono        = mono;
+  return { gabarito, gabaritoReg, arimo, mono };
 }
 
 // ── Font-size algorithm (reminder mode) ───────────────────────────────────────
@@ -168,7 +171,7 @@ export async function GET() {
   const now     = new Date();
   const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
   const dayName = now.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
-  const { gabarito: fontGabarito, arimo: fontArimo, mono: fontMono } = await getFonts();
+  const { gabarito: fontGabarito, gabaritoReg: fontGabaritoReg, arimo: fontArimo, mono: fontMono } = await getFonts();
 
   // ── EMPTY STATE: show a daily rotating quote ───────────────────────────────
   if (N === 0) {
@@ -229,9 +232,10 @@ export async function GET() {
       {
         width: W, height: H,
         fonts: [
-          { name: "Gabarito",      data: fontGabarito, style: "normal", weight: 900 },
-          { name: "Arimo",         data: fontArimo,    style: "normal", weight: 700 },
-          { name: "IBM Plex Mono", data: fontMono,     style: "normal", weight: 700 },
+          { name: "Gabarito",      data: fontGabarito,    style: "normal", weight: 900 },
+          { name: "Gabarito",      data: fontGabaritoReg, style: "normal", weight: 400 },
+          { name: "Arimo",         data: fontArimo,       style: "normal", weight: 700 },
+          { name: "IBM Plex Mono", data: fontMono,        style: "normal", weight: 700 },
         ],
         headers: { "Cache-Control": "no-store, max-age=0" },
       },
@@ -291,7 +295,7 @@ export async function GET() {
                 {String(i + 1).padStart(2, "0")}
               </span>
               <div style={{ width: COL_GAP, flexShrink: 0 }} />
-              <span style={{ fontSize, color: r.done ? DONE_C : WHITE, fontFamily: "Gabarito", fontWeight: 900, letterSpacing: textLS,
+              <span style={{ fontSize, color: r.done ? DONE_C : WHITE, fontFamily: "Gabarito", fontWeight: 400, letterSpacing: textLS,
                 textDecoration: r.done ? "line-through" : "none", flex: 1, lineHeight: 1.15 }}>
                 {r.text}
               </span>
