@@ -34,10 +34,10 @@ const TEXT_W   = W - 2 * SIDE_PAD - BAR_W - BAR_MR - NUM_W - COL_GAP; // 941 px
 const HEADER_H  = 86;
 const FOOTER_H  = 260;
 
-const FONT_MAX   = 118;
+const FONT_MAX   = 72;
 const FONT_MIN   = 34;
 const CHAR_RATIO = 0.62;
-const RATIO_1LN  = 1.40;
+const RATIO_1LN  = 1.60;
 const RATIO_2LN  = 2.70;
 const RATIO_3LN  = 4.00;   // 3 lines of text + padding
 
