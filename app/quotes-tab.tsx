@@ -70,7 +70,6 @@ function Thumb({ slug, portraits }: { slug: string; portraits: Record<string, st
 
 export default function QuotesTab() {
   const [data, setData]       = useState<QuotesData | null>(null);
-  const [busy, setBusy]       = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
 
   // add form
@@ -98,17 +97,44 @@ export default function QuotesTab() {
     img.src = URL.createObjectURL(f);
   }
 
-  async function patch(body: object) {
-    await fetch("/api/quotes", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    await load();
-    setBusy(null);
+  // fire-and-forget PATCH; UI is updated optimistically by the caller
+  function patch(body: object) {
+    fetch("/api/quotes", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .catch(() => load()); // re-sync only on failure
   }
 
-  async function remove(id: string) {
-    setBusy(id);
-    await fetch("/api/quotes", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-    await load();
-    setBusy(null);
+  function setPin(id: string | null) {
+    setData(d => d ? { ...d, pin: id ? { id } : null } : d);
+    patch({ pin: id });
+  }
+
+  function setDisabled(id: string, disabled: boolean) {
+    setData(d => d ? { ...d, quotes: d.quotes.map(x => x.id === id ? { ...x, disabled } : x) } : d);
+    patch({ id, disabled });
+  }
+
+  function remove(id: string) {
+    setData(d => d ? { ...d, quotes: d.quotes.filter(x => x.id !== id),
+      pin: d.pin?.id === id ? null : d.pin } : d);
+    fetch("/api/quotes", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
+      .catch(() => load());
+  }
+
+  // ── inline edit ──
+  const [editId, setEditId] = useState<string | null>(null);
+  const [eq, setEq] = useState(""); const [ec, setEc] = useState(""); const [es, setEs] = useState("");
+
+  function startEdit(qt: Quote) {
+    setEditId(qt.id); setEq(qt.q); setEc(qt.c); setEs(qt.s);
+  }
+
+  function commitEdit() {
+    if (!editId || !eq.trim() || !ec.trim()) return;
+    const c = ec.trim().toUpperCase();
+    setData(d => d ? { ...d, quotes: d.quotes.map(x =>
+      x.id === editId ? { ...x, q: eq.trim(), c, s: es.trim() || x.s } : x) } : d);
+    patch({ id: editId, q: eq, c: ec, s: es });
+    setEditId(null);
   }
 
   async function addQuote() {
@@ -190,9 +216,28 @@ export default function QuotesTab() {
         {data.quotes.map(qt => {
           const slug = slugify(qt.c);
           const pinned = pinId === qt.id;
+          if (editId === qt.id) return (
+            <li key={qt.id} className="rounded-xl px-3 py-3 border border-[#FF693C]/30 bg-[#0a0a0a] space-y-2">
+              <textarea value={eq} onChange={e => setEq(e.target.value)} rows={2} autoFocus
+                className="w-full bg-transparent text-white text-sm outline-none resize-none" />
+              <div className="flex gap-3">
+                <input value={ec} onChange={e => setEc(e.target.value)} placeholder="Character"
+                  className="flex-1 bg-transparent text-[#999] text-xs outline-none border-b border-[#1a1a1a] pb-1" />
+                <input value={es} onChange={e => setEs(e.target.value)} placeholder="Show / source"
+                  className="flex-1 bg-transparent text-[#999] text-xs outline-none border-b border-[#1a1a1a] pb-1" />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setEditId(null)} className="text-xs text-[#555] px-3 py-1.5">Cancel</button>
+                <button onClick={commitEdit} disabled={!eq.trim() || !ec.trim()}
+                  className="bg-[#FF693C] text-black text-[11px] font-bold tracking-wider px-3 py-1.5 rounded-lg disabled:opacity-20">
+                  SAVE
+                </button>
+              </div>
+            </li>
+          );
           return (
             <li key={qt.id}
-              className={`flex items-center gap-3 rounded-xl px-3 py-3 border transition-colors ${
+              className={`group flex items-center gap-3 rounded-xl px-3 py-3 border transition-colors ${
                 pinned ? "border-[#FF693C]/40 bg-[#FF693C]/5"
                        : "border-transparent hover:border-[#1a1a1a]"
               } ${qt.disabled ? "opacity-35" : ""}`}>
@@ -205,19 +250,20 @@ export default function QuotesTab() {
                 </p>
               </div>
               <button title={pinned ? "Unpin" : "Pin — always show this quote"}
-                onClick={() => { setBusy(qt.id); patch({ pin: pinned ? null : qt.id }); }}
-                disabled={busy === qt.id || qt.disabled}
-                className={`text-xs px-2 py-1 rounded ${pinned ? "text-[#FF693C]" : "text-[#444] hover:text-[#999]"}`}>
+                onClick={() => setPin(pinned ? null : qt.id)}
+                disabled={qt.disabled}
+                className={`text-sm px-2 py-1 rounded ${pinned ? "text-[#FF693C]" : "text-[#444] hover:text-[#999]"}`}>
                 {pinned ? "★" : "☆"}
               </button>
+              <button title="Edit" onClick={() => startEdit(qt)}
+                className="text-xs text-[#444] hover:text-[#999] px-2 py-1 rounded">✎</button>
               <button title={qt.disabled ? "Enable" : "Disable"}
-                onClick={() => { setBusy(qt.id); patch({ id: qt.id, disabled: !qt.disabled }); }}
-                disabled={busy === qt.id}
+                onClick={() => setDisabled(qt.id, !qt.disabled)}
                 className="text-xs text-[#444] hover:text-[#999] px-2 py-1 rounded">
                 {qt.disabled ? "OFF" : "ON"}
               </button>
               {qt.custom && (
-                <button title="Delete" onClick={() => remove(qt.id)} disabled={busy === qt.id}
+                <button title="Delete" onClick={() => remove(qt.id)}
                   className="text-xs text-[#444] hover:text-red-400 px-2 py-1 rounded">✕</button>
               )}
             </li>

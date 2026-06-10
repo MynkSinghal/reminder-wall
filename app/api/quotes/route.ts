@@ -20,10 +20,10 @@ export async function GET() {
     quotes.filter(q => q.custom).map(q => slugify(q.c)),
   )];
   const portraits: Record<string, string> = {};
-  for (const slug of customSlugs) {
-    const p = await redis.get<string>(PORTRAIT_KEY(slug));
-    if (p) portraits[slug] = p;
-  }
+  const loaded = await Promise.all(
+    customSlugs.map(async slug => [slug, await redis.get<string>(PORTRAIT_KEY(slug))] as const),
+  );
+  for (const [slug, p] of loaded) if (p) portraits[slug] = p;
   return NextResponse.json({ quotes, pin: pin ?? null, portraits });
 }
 
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   return NextResponse.json(quote, { status: 201 });
 }
 
-// PATCH { id, disabled } → toggle | { pin: id | null } → pin/unpin
+// PATCH { id, disabled?, q?, c?, s? } → update | { pin: id | null } → pin/unpin
 export async function PATCH(req: Request) {
   const body = await req.json();
   if ("pin" in body) {
@@ -57,13 +57,26 @@ export async function PATCH(req: Request) {
     else await redis.set(PIN_KEY, { id: body.pin });
     return NextResponse.json({ ok: true });
   }
-  const { id, disabled } = body;
+  const { id, disabled, q, c, s } = body;
   const quotes = await getQuotes();
   const idx = quotes.findIndex(x => x.id === id);
   if (idx === -1) return NextResponse.json({ error: "not found" }, { status: 404 });
-  quotes[idx] = { ...quotes[idx], disabled: !!disabled };
+  const cur = { ...quotes[idx] };
+  if (disabled !== undefined) cur.disabled = !!disabled;
+  if (typeof q === "string" && q.trim()) cur.q = q.trim();
+  if (typeof c === "string" && c.trim()) {
+    // keep the portrait reachable if the character is renamed
+    const oldSlug = slugify(cur.c), newSlug = slugify(c.trim().toUpperCase());
+    if (oldSlug !== newSlug) {
+      const p = await redis.get<string>(PORTRAIT_KEY(oldSlug));
+      if (p) await redis.set(PORTRAIT_KEY(newSlug), p);
+    }
+    cur.c = c.trim().toUpperCase();
+  }
+  if (typeof s === "string") cur.s = s.trim() || cur.s;
+  quotes[idx] = cur;
   await redis.set(QUOTES_KEY, quotes);
-  return NextResponse.json(quotes[idx]);
+  return NextResponse.json(cur);
 }
 
 // DELETE { id } → remove a custom quote (built-ins can only be disabled)
