@@ -50,8 +50,7 @@ export async function GET() {
   const pool = allQuotes.filter(x => !x.disabled);
   const list = pool.length ? pool : DEFAULT_QUOTES;
   const pinned = pin ? list.find(x => x.id === pin.id) : undefined;
-  const day = Math.floor(Date.now() / 86_400_000);
-  const { q, c } = pinned ?? list[day % list.length];
+  const { q, c } = pinned ?? list[Math.floor(Math.random() * list.length)];
 
   const text = `“${q}”`;
   const F = fitFont(text);
