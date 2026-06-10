@@ -249,7 +249,7 @@ export async function GET(req: Request) {
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1100, display: "flex",
             background: "linear-gradient(to top,rgba(255,105,60,0.28) 0%,rgba(255,105,60,0.10) 35%,rgba(255,105,60,0.02) 65%,transparent 100%)" }} />
 
-          <div style={{ display: "flex", flexDirection: "column", paddingTop: qTop,
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: qTop,
             paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD, width: "100%", position: "relative" }}>
 
             {/* Dot portrait — centered above the quote */}
@@ -259,11 +259,11 @@ export async function GET(req: Request) {
               </div>
             )}
 
-            {/* Quote text */}
+            {/* Quote text — centered (monument layout) */}
             <span style={{
               fontSize: qFont, color: WHITE, fontFamily: "GabaritoReg", fontWeight: 400,
               letterSpacing: qFont > 72 ? "-0.04em" : "-0.02em",
-              lineHeight: 1.18, marginBottom: 60,
+              lineHeight: 1.18, marginBottom: 60, textAlign: "center",
             }}>
               &ldquo;{q}&rdquo;
             </span>
@@ -271,7 +271,7 @@ export async function GET(req: Request) {
             {/* Character — orange, prominent */}
             <span style={{
               fontSize: 34, color: ORANGE, fontFamily: "Arimo", fontWeight: 700,
-              letterSpacing: "0.12em", marginBottom: 16,
+              letterSpacing: "0.12em", marginBottom: 16, textAlign: "center",
             }}>
               — {c}
             </span>
@@ -279,6 +279,7 @@ export async function GET(req: Request) {
             {/* Show name — small, dimmed */}
             <span style={{
               fontSize: 24, color: "#555555", fontFamily: "Arimo", fontWeight: 700, letterSpacing: "0.18em",
+              textAlign: "center",
             }}>
               {s.toUpperCase()}
             </span>
