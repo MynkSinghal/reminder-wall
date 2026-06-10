@@ -122,9 +122,12 @@ async function loadPortrait(origin: string, character: string): Promise<string |
   if (!slug) return null;
   if (_portraitCache.has(slug)) return _portraitCache.get(slug) ?? null;
   try {
-    const custom = await redis.get<string>(PORTRAIT_KEY(slug));
+    // fetch both sources in parallel; custom (dashboard upload) wins
+    const [custom, res] = await Promise.all([
+      redis.get<string>(PORTRAIT_KEY(slug)),
+      fetch(`${origin}/portraits/${slug}.png`),
+    ]);
     if (custom) { _portraitCache.set(slug, custom); return custom; }
-    const res = await fetch(`${origin}/portraits/${slug}.png`);
     if (!res.ok) { _portraitCache.set(slug, null); return null; }
     const bytes = new Uint8Array(await res.arrayBuffer());
     let bin = "";
@@ -153,7 +156,13 @@ const SignatureEl = () => (
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 export async function GET(req: Request) {
-  const data    = await redis.get<Reminder[]>(KEY);
+  // One parallel burst: reminders + quote data + fonts (no serial round-trips)
+  const [data, quotesData, pin, fonts] = await Promise.all([
+    redis.get<Reminder[]>(KEY),
+    redis.get<Quote[]>(QUOTES_KEY),
+    redis.get<{ id: string }>(PIN_KEY),
+    getFonts(),
+  ]);
   const all     = (data ?? []).sort((a, b) => a.order - b.order);
   const sorted  = [...all.filter(r => !r.done), ...all.filter(r => r.done)];
   const pending = sorted.filter(r => !r.done);
@@ -162,14 +171,13 @@ export async function GET(req: Request) {
   const now     = new Date();
   const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
   const dayName = now.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
-  const { gabarito: fontGabarito, gabaritoReg: fontGabaritoReg, arimo: fontArimo, mono: fontMono } = await getFonts();
+  const { gabarito: fontGabarito, gabaritoReg: fontGabaritoReg, arimo: fontArimo, mono: fontMono } = fonts;
 
   // ── EMPTY STATE: show a daily rotating quote ───────────────────────────────
   if (N === 0) {
-    const allQuotes = (await redis.get<Quote[]>(QUOTES_KEY)) ?? DEFAULT_QUOTES;
+    const allQuotes = quotesData ?? DEFAULT_QUOTES;
     const enabled   = allQuotes.filter(x => !x.disabled);
     const pool      = enabled.length ? enabled : DEFAULT_QUOTES;
-    const pin       = await redis.get<{ id: string }>(PIN_KEY);
     const pinned    = pin ? pool.find(x => x.id === pin.id) : undefined;
     const { q, c, s } = pinned ?? pool[Math.floor(Math.random() * pool.length)];
     const portrait = await loadPortrait(new URL(req.url).origin, c);
