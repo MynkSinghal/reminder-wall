@@ -122,16 +122,16 @@ export async function GET(req: Request) {
           {/* portrait + quote-start */}
           <div style={{ display: "flex", alignItems: "flex-start" }}>
             {portrait && <img src={portrait} width={FACE} height={FACE} style={{ marginRight: FACE_MR, flexShrink: 0 }} />}
-            <div style={{ display: "flex", flexDirection: "column", paddingTop: 4 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", paddingTop: 4 }}>
               {beside.map((ln, i) => (
-                <span key={i} style={{ fontSize: F, lineHeight: `${LH}px`, color: "#fff", letterSpacing: "-0.01em" }}>{ln}</span>
+                <span key={i} style={{ fontSize: F, lineHeight: `${LH}px`, color: "#fff", letterSpacing: "-0.01em", textAlign: "left" }}>{ln}</span>
               ))}
             </div>
           </div>
           {/* quote continues full-width */}
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
             {below.map((ln, i) => (
-              <span key={i} style={{ fontSize: F, lineHeight: `${LH}px`, color: "#fff", letterSpacing: "-0.01em" }}>{ln}</span>
+              <span key={i} style={{ fontSize: F, lineHeight: `${LH}px`, color: "#fff", letterSpacing: "-0.01em", textAlign: "left" }}>{ln}</span>
             ))}
           </div>
 
