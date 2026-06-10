@@ -16,6 +16,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import QuotesTab from "./quotes-tab";
 
 interface Reminder {
   id: string;
@@ -176,6 +177,7 @@ export default function Home() {
   const [adding, setAdding]       = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText,  setEditText]  = useState("");
+  const [tab, setTab]             = useState<"reminders" | "quotes">("reminders");
   const inputRef  = useRef<HTMLInputElement>(null);
   const isMoving  = useRef(false);
 
@@ -378,6 +380,21 @@ export default function Home() {
 
       <div className="max-w-xl mx-auto px-5 py-8">
 
+        {/* Tabs */}
+        <div className="flex gap-1 mb-8 bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-1">
+          {(["reminders", "quotes"] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex-1 text-xs font-bold tracking-[0.2em] uppercase rounded-lg py-2.5 transition-colors ${
+                tab === t ? "bg-[#1a1a1a] text-[#FF693C]" : "text-[#444] hover:text-[#777]"
+              }`}>
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {tab === "quotes" && <QuotesTab />}
+
+        {tab === "reminders" && <>
         {/* Add input */}
         <div className="mb-8">
           <div className="flex gap-3 items-center bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-4 focus-within:border-[#FF693C]/40 transition-colors">
@@ -449,6 +466,7 @@ export default function Home() {
             </p>
           </div>
         )}
+        </>}
       </div>
     </main>
   );
