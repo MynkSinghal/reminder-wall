@@ -16,7 +16,7 @@ const ORANGE  = "#FF693C";
 const PAD     = 20;
 const CLOCK_H = 104;
 
-const GABARITO = "https://cdn.jsdelivr.net/npm/@fontsource/gabarito@5.2.8/files/gabarito-latin-400-normal.woff";
+const GABARITO = "https://cdn.jsdelivr.net/npm/@fontsource/gabarito@5.2.8/files/gabarito-latin-700-normal.woff";
 const ARIMO    = "https://cdn.jsdelivr.net/npm/@fontsource/arimo@5.2.8/files/arimo-latin-700-normal.woff";
 let _gab: ArrayBuffer | null = null;
 let _ari: ArrayBuffer | null = null;
@@ -28,7 +28,7 @@ function fitFont(text: string): number {
   const fullW  = W - 2 * PAD;
   for (let F = 34; F >= 14; F -= 1) {
     const LH = F * 1.24;
-    const charsPerLine = Math.max(1, Math.floor(fullW / (F * 0.50)));
+    const charsPerLine = Math.max(1, Math.floor(fullW / (F * 0.53)));
     const lines = Math.ceil(text.length / charsPerLine) + 1; // +1 wrap slack
     if (lines * LH <= availH) return F;
   }
@@ -76,7 +76,7 @@ export async function GET() {
           {/* quote — Satori wraps and centers natively */}
           <div style={{
             display: "flex", width: "100%", justifyContent: "center",
-            fontSize: F, lineHeight: 1.24, color: "#fff",
+            fontSize: F, lineHeight: 1.24, color: "#fff", fontWeight: 700,
             textAlign: "center", letterSpacing: "-0.01em",
           }}>
             {text}
@@ -87,7 +87,7 @@ export async function GET() {
             fontSize: 14, color: ORANGE, letterSpacing: "0.14em", fontWeight: 700,
             fontFamily: "Arimo", marginTop: 18, textAlign: "center",
           }}>
-            — {c}
+            {c}
           </span>
 
           {/* count pill */}
@@ -116,7 +116,7 @@ export async function GET() {
     {
       width: W, height: H,
       fonts: [
-        { name: "Gabarito", data: gab, style: "normal", weight: 400 },
+        { name: "Gabarito", data: gab, style: "normal", weight: 700 },
         { name: "Arimo",    data: ari, style: "normal", weight: 700 },
       ],
       headers: { "Cache-Control": "no-store, max-age=0" },
