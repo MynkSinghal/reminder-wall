@@ -273,7 +273,7 @@ export async function GET(req: Request) {
               fontSize: 34, color: ORANGE, fontFamily: "Arimo", fontWeight: 700,
               letterSpacing: "0.12em", marginBottom: 16, textAlign: "center",
             }}>
-              — {c}
+              {c}
             </span>
 
             {/* Show name — small, dimmed */}
