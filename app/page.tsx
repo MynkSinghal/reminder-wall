@@ -178,6 +178,20 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText,  setEditText]  = useState("");
   const [tab, setTab]             = useState<"reminders" | "quotes">("reminders");
+  const [codeMode, setCodeMode]   = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(s => setCodeMode(!!s.codeMode)).catch(() => {});
+  }, []);
+
+  function toggleCodeMode() {
+    const next = !codeMode;
+    setCodeMode(next); // optimistic
+    fetch("/api/settings", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ codeMode: next }),
+    }).catch(() => setCodeMode(!next));
+  }
   const inputRef  = useRef<HTMLInputElement>(null);
   const isMoving  = useRef(false);
 
@@ -395,6 +409,20 @@ export default function Home() {
         {tab === "quotes" && <QuotesTab />}
 
         {tab === "reminders" && <>
+        {/* Code mode toggle — wallpaper renders reminders in the coded language */}
+        <div className="flex items-center justify-between mb-4 px-1">
+          <div className="flex flex-col">
+            <span className="text-[11px] font-bold tracking-[0.2em] text-[#555]">CODE MODE</span>
+            <span className="text-[10px] text-[#333] mt-0.5">
+              {codeMode ? "wallpaper shows coded text — deen ot hsinif tcjp wrmot" : "wallpaper shows plain english"}
+            </span>
+          </div>
+          <button onClick={toggleCodeMode} aria-label="Toggle code mode"
+            className={`relative w-11 h-6 rounded-full transition-colors ${codeMode ? "bg-[#FF693C]" : "bg-[#1a1a1a]"}`}>
+            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${codeMode ? "left-[22px]" : "left-0.5"}`} />
+          </button>
+        </div>
+
         {/* Add input */}
         <div className="mb-8">
           <div className="flex gap-3 items-center bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-4 focus-within:border-[#FF693C]/40 transition-colors">

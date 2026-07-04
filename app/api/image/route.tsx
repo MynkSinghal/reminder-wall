@@ -1,6 +1,7 @@
 import { ImageResponse } from "@vercel/og";
 import { redis, KEY } from "@/lib/redis";
 import { Quote, DEFAULT_QUOTES, QUOTES_KEY, PIN_KEY, PORTRAIT_KEY, slugify } from "@/lib/quotes";
+import { encodeReminder, SETTINGS_KEY, Settings } from "@/lib/encode";
 
 export const runtime = "edge";
 
@@ -157,10 +158,11 @@ const SignatureEl = () => (
 // ── Route ─────────────────────────────────────────────────────────────────────
 export async function GET(req: Request) {
   // One parallel burst: reminders + quote data + fonts (no serial round-trips)
-  const [data, quotesData, pin, fonts] = await Promise.all([
+  const [data, quotesData, pin, settings, fonts] = await Promise.all([
     redis.get<Reminder[]>(KEY),
     redis.get<Quote[]>(QUOTES_KEY),
     redis.get<{ id: string }>(PIN_KEY),
+    redis.get<Settings>(SETTINGS_KEY),
     getFonts(),
   ]);
   const all     = (data ?? []).sort((a, b) => a.order - b.order);
@@ -256,7 +258,10 @@ export async function GET(req: Request) {
   }
 
   // ── REMINDER MODE ─────────────────────────────────────────────────────────
-  const displayed   = sorted.slice(0, MAX_DISPLAY);
+  // Code mode: reminders render in the coded language (UI/DB stay English).
+  const codeOn      = !!settings?.codeMode;
+  const displayed   = sorted.slice(0, MAX_DISPLAY)
+    .map(r => codeOn ? { ...r, text: encodeReminder(r.text) } : r);
   const hiddenCount = Math.max(0, sorted.length - MAX_DISPLAY);
   const hasOverflow = hiddenCount > 0;
   const availH  = SAFE_BOTTOM - SAFE_TOP - HEADER_H - FOOTER_H - (hasOverflow ? OVERFLOW_ROW_H : 0);
