@@ -1,25 +1,20 @@
-// "Reverse + Abbreviate" reminder encoder.
+// Reminder encoder — "skeleton + flip" scheme.
 // English lives in the UI + Redis; this runs ONLY at wallpaper render time.
 //
-// Algorithm (per spec):
+// Rules:
 //  1. lowercase, strip punctuation
-//  2. reverse every word
-//  3. words of 1–6 letters: keep reversed as-is
-//     words of 7+ letters: abbreviate the reversed word to a 4–5 letter skeleton:
-//       – keep first + last letter of the reversed word
-//       – collapse repeated letters
-//       – drop middle vowels (keep one only if too few consonants remain)
-//       – keep 2–3 prominent middle consonants (up to 5 for very long words)
-//  Tokens containing digits/symbols/emoji (5pm, ₹500, e-mail) pass through untouched.
+//  2. short words (1–5 letters): reverse the letters   (need → deen, at → ta)
+//  3. long words (6+ letters): consonant skeleton, NOT reversed
+//     (first + last letter, middle consonants deduped, ≤3 middle — ≤5 for 10+
+//      letter words; keep one vowel if too few consonants)
+//     finish → fnsh, project → prjct, tomorrow → tmrw, meeting → mtng
+//  4. reverse the WORD ORDER of the whole line
+//  Tokens containing digits/symbols/emoji (5pm, ₹500) pass through untouched.
+//
+//  "Need to finish project tomorrow"  →  "tmrw prjct fnsh ot deen"
+//  "Call mom at 5pm about rent"       →  "tner tuoba 5pm ta mom llac"
 
 const VOWELS = new Set("aeiou");
-
-// User-approved baselines — always exact.
-const DICT: Record<string, string> = {
-  tomorrow: "wrmot",
-  meeting: "gntm",
-  project: "tcjp",
-};
 
 function dedupeConsecutive(s: string): string {
   let out = "";
@@ -27,18 +22,18 @@ function dedupeConsecutive(s: string): string {
   return out;
 }
 
-function abbreviate(reversed: string, origLen: number): string {
-  const r = dedupeConsecutive(reversed);
-  const first = r[0];
-  const last = r[r.length - 1];
-  const middle = r.slice(1, -1);
+function skeleton(word: string): string {
+  const w = dedupeConsecutive(word);
+  const first = w[0];
+  const last = w[w.length - 1];
+  const middle = w.slice(1, -1);
 
   const seen = new Set<string>();
   const cons: string[] = [];
   for (const ch of middle) {
     if (!VOWELS.has(ch) && !seen.has(ch)) { cons.push(ch); seen.add(ch); }
   }
-  const cap = origLen >= 10 ? 5 : 3;
+  const cap = word.length >= 10 ? 5 : 3;
   let mid = cons.slice(0, cap);
   if (mid.length < 2) {
     const v = [...middle].find(ch => VOWELS.has(ch));
@@ -48,19 +43,18 @@ function abbreviate(reversed: string, origLen: number): string {
 }
 
 export function encodeReminder(text: string): string {
-  return text
+  const words = text
     .toLowerCase()
     .split(/\s+/)
     .map(tok => {
       const clean = tok.replace(/[.,!?;:'"“”‘’()[\]{}]/g, "");
       if (!clean) return "";
       if (!/^[a-z]+$/.test(clean)) return clean; // digits / emoji / mixed → untouched
-      if (DICT[clean]) return DICT[clean];
-      const rev = [...clean].reverse().join("");
-      return clean.length <= 6 ? rev : abbreviate(rev, clean.length);
+      if (clean.length <= 5) return [...clean].reverse().join("");
+      return skeleton(clean);
     })
-    .filter(Boolean)
-    .join(" ");
+    .filter(Boolean);
+  return words.reverse().join(" ");
 }
 
 export const SETTINGS_KEY = "settings";
