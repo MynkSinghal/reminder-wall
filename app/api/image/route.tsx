@@ -141,16 +141,38 @@ async function loadPortrait(origin: string, character: string): Promise<string |
     ]);
     if (custom) { _portraitCache.set(slug, custom); return custom; }
     if (!res.ok) { _portraitCache.set(slug, null); return null; }
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    let bin = "";
-    for (let i = 0; i < bytes.length; i += 8192) {
-      bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
-    }
-    const dataUri = `data:image/png;base64,${btoa(bin)}`;
+    const dataUri = pngDataUri(await res.arrayBuffer());
     _portraitCache.set(slug, dataUri);
     return dataUri;
   } catch {
     _portraitCache.set(slug, null);
+    return null;
+  }
+}
+
+function pngDataUri(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 8192) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  }
+  return `data:image/png;base64,${btoa(bin)}`;
+}
+
+// ── Dithered backdrop ─────────────────────────────────────────────────────────
+// Satori draws CSS gradients in 8-bit, which bands badly in dark navy. The real
+// backdrop is pre-rendered + dithered by scripts/generate_backdrop.mjs into
+// public/backdrops/frost-horizon.png; the CSS <Backdrop /> is only a fallback.
+let _backdrop: string | null = null;
+
+async function loadBackdrop(origin: string): Promise<string | null> {
+  if (_backdrop) return _backdrop;
+  try {
+    const res = await fetch(`${origin}/backdrops/frost-horizon.png`);
+    if (!res.ok) return null;
+    _backdrop = pngDataUri(await res.arrayBuffer());
+    return _backdrop;
+  } catch {
     return null;
   }
 }
@@ -167,7 +189,9 @@ const SignatureEl = () => (
 );
 
 // ── Frost horizon backdrop — navy-black rising into a glacier glow ────────────
-const Backdrop = () => (
+const Backdrop = ({ src }: { src: string | null }) => src ? (
+  <img src={src} width={W} height={H} style={{ position: "absolute", top: 0, left: 0 }} />
+) : (
   <>
     <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex",
       background: "linear-gradient(180deg,#030507 0%,#050A0F 38%,#08131C 58%,#0E2333 76%,#1A3B50 90%,#2B5670 100%)" }} />
@@ -200,12 +224,13 @@ function calendar(now: Date) {
 // ── Route ─────────────────────────────────────────────────────────────────────
 export async function GET(req: Request) {
   // One parallel burst: reminders + quote data + fonts (no serial round-trips)
-  const [data, quotesData, pin, settings, fonts] = await Promise.all([
+  const [data, quotesData, pin, settings, fonts, backdrop] = await Promise.all([
     redis.get<Reminder[]>(KEY),
     redis.get<Quote[]>(QUOTES_KEY),
     redis.get<{ id: string }>(PIN_KEY),
     redis.get<Settings>(SETTINGS_KEY),
     getFonts(),
+    loadBackdrop(new URL(req.url).origin),
   ]);
   const all     = (data ?? []).sort((a, b) => a.order - b.order);
   const sorted  = [...all.filter(r => !r.done), ...all.filter(r => r.done)];
@@ -236,7 +261,7 @@ export async function GET(req: Request) {
     return new ImageResponse(
       (
         <div style={{ width: W, height: H, background: "#000", display: "flex", fontFamily: "Gabarito", position: "relative" }}>
-          <Backdrop />
+          <Backdrop src={backdrop} />
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: qTop,
             paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD, width: "100%", position: "relative" }}>
@@ -315,7 +340,7 @@ export async function GET(req: Request) {
   return new ImageResponse(
     (
       <div style={{ width: W, height: H, background: "#000", display: "flex", fontFamily: "Gabarito", position: "relative" }}>
-        <Backdrop />
+        <Backdrop src={backdrop} />
 
         <div style={{ display: "flex", flexDirection: "column", paddingTop: topPad,
           paddingLeft: SIDE_PAD, paddingRight: SIDE_PAD, width: "100%", position: "relative" }}>
