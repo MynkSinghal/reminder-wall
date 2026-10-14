@@ -106,7 +106,7 @@ function SortableRow({
       </button>
 
       {/* Number */}
-      <span className="text-[#FF693C] text-xs font-bold tabular-nums w-6 text-right shrink-0 select-none">
+      <span className="text-[#9FCBEA] text-xs font-bold tabular-nums w-6 text-right shrink-0 select-none">
         {String(idx + 1).padStart(2, "0")}
       </span>
 
@@ -115,8 +115,8 @@ function SortableRow({
         onClick={() => onToggle(r.id)}
         className="w-6 h-6 rounded-full border flex items-center justify-center shrink-0 transition-all active:scale-90"
         style={{
-          borderColor: r.done ? "#FF693C" : "#2a2a2a",
-          background: r.done ? "#FF693C" : "transparent",
+          borderColor: r.done ? "#9FCBEA" : "#2a2a2a",
+          background: r.done ? "#9FCBEA" : "transparent",
         }}
       >
         {r.done && (
@@ -138,7 +138,7 @@ function SortableRow({
               if (e.key === "Escape") onEditCancel();
             }}
             onBlur={onEditCommit}
-            className="w-full bg-transparent text-white text-sm outline-none border-b border-[#FF693C]/40 pb-0.5"
+            className="w-full bg-transparent text-white text-sm outline-none border-b border-[#9FCBEA]/40 pb-0.5"
           />
         ) : (
           <span
@@ -375,7 +375,7 @@ export default function Home() {
     <main className="min-h-screen bg-black text-white">
       {/* Top bar */}
       <div className="border-b border-[#111] px-5 py-4 flex items-center justify-between">
-        <span className="text-[#FF693C] text-xs font-bold tracking-[0.3em] uppercase">
+        <span className="text-[#9FCBEA] text-xs font-bold tracking-[0.3em] uppercase">
           Reminder Wall
         </span>
         <div className="flex items-center gap-3">
@@ -385,7 +385,7 @@ export default function Home() {
           <a
             href="/api/image"
             target="_blank"
-            className="text-xs text-[#FF693C] border border-[#FF693C]/30 rounded px-3 py-1.5 hover:bg-[#FF693C]/10 transition-colors"
+            className="text-xs text-[#9FCBEA] border border-[#9FCBEA]/30 rounded px-3 py-1.5 hover:bg-[#9FCBEA]/10 transition-colors"
           >
             Wallpaper ↗
           </a>
@@ -399,7 +399,7 @@ export default function Home() {
           {(["reminders", "quotes"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`flex-1 text-xs font-bold tracking-[0.2em] uppercase rounded-lg py-2.5 transition-colors ${
-                tab === t ? "bg-[#1a1a1a] text-[#FF693C]" : "text-[#444] hover:text-[#777]"
+                tab === t ? "bg-[#1a1a1a] text-[#9FCBEA]" : "text-[#444] hover:text-[#777]"
               }`}>
               {t}
             </button>
@@ -418,14 +418,14 @@ export default function Home() {
             </span>
           </div>
           <button onClick={toggleCodeMode} aria-label="Toggle code mode"
-            className={`relative w-11 h-6 rounded-full transition-colors ${codeMode ? "bg-[#FF693C]" : "bg-[#1a1a1a]"}`}>
+            className={`relative w-11 h-6 rounded-full transition-colors ${codeMode ? "bg-[#9FCBEA]" : "bg-[#1a1a1a]"}`}>
             <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${codeMode ? "left-[22px]" : "left-0.5"}`} />
           </button>
         </div>
 
         {/* Add input */}
         <div className="mb-8">
-          <div className="flex gap-3 items-center bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-4 focus-within:border-[#FF693C]/40 transition-colors">
+          <div className="flex gap-3 items-center bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-4 focus-within:border-[#9FCBEA]/40 transition-colors">
             <input
               ref={inputRef}
               className="flex-1 bg-transparent text-white placeholder-[#282828] text-base outline-none"
@@ -437,7 +437,7 @@ export default function Home() {
             <button
               onClick={addReminder}
               disabled={!input.trim() || adding}
-              className="bg-[#FF693C] text-black text-xs font-bold tracking-wider px-4 py-2 rounded-lg disabled:opacity-20 active:scale-95 transition-all"
+              className="bg-[#9FCBEA] text-black text-xs font-bold tracking-wider px-4 py-2 rounded-lg disabled:opacity-20 active:scale-95 transition-all"
             >
               ADD
             </button>
@@ -486,7 +486,7 @@ export default function Home() {
         {sorted.length > 0 && (
           <div className="mt-10 border border-[#0f0f0f] rounded-xl p-4 bg-[#030303]">
             <p className="text-[#222] text-xs mb-2">iOS Shortcut URL</p>
-            <p className="text-[#FF693C]/50 text-xs font-mono break-all">
+            <p className="text-[#9FCBEA]/50 text-xs font-mono break-all">
               {typeof window !== "undefined"
                 ? window.location.origin
                 : "https://reminder-wall.vercel.app"}

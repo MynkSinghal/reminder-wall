@@ -160,7 +160,7 @@ export default function QuotesTab() {
       <div className="mb-8">
         {!showAdd ? (
           <button onClick={() => setShowAdd(true)}
-            className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-4 text-left text-[#282828] text-base hover:border-[#FF693C]/40 transition-colors">
+            className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-4 text-left text-[#282828] text-base hover:border-[#9FCBEA]/40 transition-colors">
             Add your own quote…
           </button>
         ) : (
@@ -184,13 +184,13 @@ export default function QuotesTab() {
                   <div className="space-y-1.5 text-[10px] text-[#555]">
                     <label className="flex items-center gap-2">ZOOM
                       <input type="range" min={1} max={3} step={0.05} value={zoom}
-                        onChange={e => setZoom(+e.target.value)} className="flex-1 accent-[#FF693C]" /></label>
+                        onChange={e => setZoom(+e.target.value)} className="flex-1 accent-[#9FCBEA]" /></label>
                     <label className="flex items-center gap-2">FACE ↑↓
                       <input type="range" min={-0.25} max={0.25} step={0.01} value={offsetY}
-                        onChange={e => setOffsetY(+e.target.value)} className="flex-1 accent-[#FF693C]" /></label>
+                        onChange={e => setOffsetY(+e.target.value)} className="flex-1 accent-[#9FCBEA]" /></label>
                     <label className="flex items-center gap-2">CONTRAST
                       <input type="range" min={0.8} max={2.6} step={0.05} value={contrast}
-                        onChange={e => setContrast(+e.target.value)} className="flex-1 accent-[#FF693C]" /></label>
+                        onChange={e => setContrast(+e.target.value)} className="flex-1 accent-[#9FCBEA]" /></label>
                   </div>
                 )}
               </div>
@@ -203,7 +203,7 @@ export default function QuotesTab() {
               <button onClick={() => setShowAdd(false)}
                 className="text-xs text-[#555] px-3 py-2">Cancel</button>
               <button onClick={addQuote} disabled={!fq.trim() || !fc.trim() || saving}
-                className="bg-[#FF693C] text-black text-xs font-bold tracking-wider px-4 py-2 rounded-lg disabled:opacity-20 active:scale-95 transition-all">
+                className="bg-[#9FCBEA] text-black text-xs font-bold tracking-wider px-4 py-2 rounded-lg disabled:opacity-20 active:scale-95 transition-all">
                 {saving ? "SAVING…" : "ADD QUOTE"}
               </button>
             </div>
@@ -217,7 +217,7 @@ export default function QuotesTab() {
           const slug = slugify(qt.c);
           const pinned = pinId === qt.id;
           if (editId === qt.id) return (
-            <li key={qt.id} className="rounded-xl px-3 py-3 border border-[#FF693C]/30 bg-[#0a0a0a] space-y-2">
+            <li key={qt.id} className="rounded-xl px-3 py-3 border border-[#9FCBEA]/30 bg-[#0a0a0a] space-y-2">
               <textarea value={eq} onChange={e => setEq(e.target.value)} rows={2} autoFocus
                 className="w-full bg-transparent text-white text-sm outline-none resize-none" />
               <div className="flex gap-3">
@@ -229,7 +229,7 @@ export default function QuotesTab() {
               <div className="flex gap-2 justify-end">
                 <button onClick={() => setEditId(null)} className="text-xs text-[#555] px-3 py-1.5">Cancel</button>
                 <button onClick={commitEdit} disabled={!eq.trim() || !ec.trim()}
-                  className="bg-[#FF693C] text-black text-[11px] font-bold tracking-wider px-3 py-1.5 rounded-lg disabled:opacity-20">
+                  className="bg-[#9FCBEA] text-black text-[11px] font-bold tracking-wider px-3 py-1.5 rounded-lg disabled:opacity-20">
                   SAVE
                 </button>
               </div>
@@ -238,7 +238,7 @@ export default function QuotesTab() {
           return (
             <li key={qt.id}
               className={`group flex items-center gap-3 rounded-xl px-3 py-3 border transition-colors ${
-                pinned ? "border-[#FF693C]/40 bg-[#FF693C]/5"
+                pinned ? "border-[#9FCBEA]/40 bg-[#9FCBEA]/5"
                        : "border-transparent hover:border-[#1a1a1a]"
               } ${qt.disabled ? "opacity-35" : ""}`}>
               <Thumb slug={slug} portraits={data.portraits} />
@@ -246,13 +246,13 @@ export default function QuotesTab() {
                 <p className="text-sm text-white truncate">&ldquo;{qt.q}&rdquo;</p>
                 <p className="text-[11px] text-[#666] tracking-wider mt-0.5">
                   {qt.c} <span className="text-[#333]">· {qt.s.toUpperCase()}</span>
-                  {qt.custom && <span className="text-[#FF693C]/60 ml-2">CUSTOM</span>}
+                  {qt.custom && <span className="text-[#9FCBEA]/60 ml-2">CUSTOM</span>}
                 </p>
               </div>
               <button title={pinned ? "Unpin" : "Pin — always show this quote"}
                 onClick={() => setPin(pinned ? null : qt.id)}
                 disabled={qt.disabled}
-                className={`text-sm px-2 py-1 rounded ${pinned ? "text-[#FF693C]" : "text-[#444] hover:text-[#999]"}`}>
+                className={`text-sm px-2 py-1 rounded ${pinned ? "text-[#9FCBEA]" : "text-[#444] hover:text-[#999]"}`}>
                 {pinned ? "★" : "☆"}
               </button>
               <button title="Edit" onClick={() => startEdit(qt)}
