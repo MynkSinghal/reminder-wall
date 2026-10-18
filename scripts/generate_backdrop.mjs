@@ -1,34 +1,32 @@
-// Frost horizon backdrop → public/backdrops/frost-horizon.png
+// Wallpaper backdrops → public/backdrops/<preset>.png
 //
 // Satori renders CSS gradients straight to 8-bit, and a dark navy gradient only
-// has ~40 shades to spread over 2622 px, so it bands into visible stripes. This
-// script computes the same backdrop in floating point and dithers it (TPDF noise,
-// ±1 level) before rounding, so the eye averages the noise into a smooth ramp.
-// Stops are joined with monotone cubic curves instead of straight segments,
-// which also removes the creases at each stop.
+// has a few dozen shades to spread over 2622 px, so it bands into visible
+// stripes. This script computes the backdrop in floating point and dithers it
+// (TPDF noise, ±1 level) before rounding, so the eye averages the noise into a
+// smooth ramp. Stops are joined with monotone cubic curves instead of straight
+// segments, which also removes the creases at each stop.
 //
-//   node scripts/generate_backdrop.mjs [--amp 1] [--no-dither] [--out path]
+//   node scripts/generate_backdrop.mjs [--preset poster-navy|frost-horizon] [--amp 1] [--no-dither] [--out path]
 //
-// No dependencies: a minimal PNG encoder lives at the bottom.
+// poster-navy reads its colours from lib/poster-theme.json.
 
 import fs from "node:fs";
 import path from "node:path";
-import zlib from "node:zlib";
+import { encodePNG } from "./lib/png.mjs";
 
 const arg = (name, dflt) => {
   const i = process.argv.indexOf(`--${name}`);
   return i < 0 ? dflt : process.argv[i + 1];
 };
 const W = 1206, H = 2622;                       // iPhone 18 Pro
+const PRESET = arg("preset", "poster-navy");
 const AMP = process.argv.includes("--no-dither") ? 0 : +arg("amp", 1);
-const OUT = arg("out", path.join(import.meta.dirname, "../public/backdrops/frost-horizon.png"));
+const OUT = arg("out", path.join(import.meta.dirname, `../public/backdrops/${PRESET}.png`));
+const THEME = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "../lib/poster-theme.json"), "utf8"));
 
-// ── Vertical base: navy-black rising into glacier blue ───────────────────────
 const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
-const STOPS = [
-  [0.00, "#030507"], [0.38, "#050A0F"], [0.58, "#08131C"],
-  [0.76, "#0E2333"], [0.90, "#1A3B50"], [1.00, "#2B5670"],
-].map(([t, c]) => [t, hex(c)]);
+const smooth = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
 
 // Fritsch–Carlson monotone cubic: smooth through the stops, never overshoots.
 function monotone(xs, ys) {
@@ -49,17 +47,56 @@ function monotone(xs, ys) {
          + (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * h * m[i + 1];
   };
 }
-const base = [0, 1, 2].map(c => monotone(STOPS.map(s => s[0]), STOPS.map(s => s[1][c])));
+const ramp = stops => {
+  const s = stops.map(([t, c]) => [t, hex(c)]);
+  const f = [0, 1, 2].map(c => monotone(s.map(x => x[0]), s.map(x => x[1][c])));
+  return t => f.map(g => g(t));
+};
+const over = (px, col, a) => { px[0] += (col[0] - px[0]) * a; px[1] += (col[1] - px[1]) * a; px[2] += (col[2] - px[2]) * a; };
 
-// ── Horizon glow: ellipse centred below the screen's bottom edge ─────────────
-const GLOW = { cx: W / 2, cy: H - 170, rx: 1136 * 0.53, ry: 778 * 0.53, alpha: 0.55,
-               inner: [214, 234, 246], outer: [159, 203, 234] };
+const PRESETS = {
+  // Navy poster: vertical navy ramp + one faint diagonal sheen, like light across a panel.
+  "poster-navy": () => {
+    const base = ramp([[0, THEME.bg.top], [0.55, THEME.bg.mid], [1, THEME.bg.bot]]);
+    const ang = 118 * Math.PI / 180, dx = Math.sin(ang), dy = -Math.cos(ang);
+    const len = Math.abs(W * dx) + Math.abs(H * dy);
+    return (x, y) => {
+      const px = base((y + 0.5) / H);
+      const t = ((x + 0.5 - W / 2) * dx + (y + 0.5 - H / 2) * dy) / len + 0.5;
+      const a = THEME.bg.sheen * (t < 0.47 ? smooth((t - 0.30) / 0.17) : smooth((0.64 - t) / 0.17));
+      if (a > 0) over(px, [255, 255, 255], a);
+      return px;
+    };
+  },
 
-// ── Ice streaks: 2px lines every 46px at 168°, fading out upward ─────────────
-const STREAK = { period: 46, width: 2, alpha: 0.035, height: 520,
-                 dx: Math.sin(168 * Math.PI / 180), dy: -Math.cos(168 * Math.PI / 180) };
+  // Frost horizon (previous design): navy-black rising into a glacier glow, with ice streaks.
+  "frost-horizon": () => {
+    const base = ramp([[0, "#030507"], [0.38, "#050A0F"], [0.58, "#08131C"], [0.76, "#0E2333"], [0.90, "#1A3B50"], [1, "#2B5670"]]);
+    const G = { cx: W / 2, cy: H - 170, rx: 602, ry: 412, alpha: 0.55, inner: [214, 234, 246], outer: [159, 203, 234] };
+    const S = { period: 46, width: 2, alpha: 0.035, height: 520, dx: Math.sin(168 * Math.PI / 180), dy: -Math.cos(168 * Math.PI / 180) };
+    return (x, y) => {
+      const px = base((y + 0.5) / H);
+      const ex = (x + 0.5 - G.cx) / G.rx, ey = (y + 0.5 - G.cy) / G.ry, d = Math.sqrt(ex * ex + ey * ey);
+      if (d < 1) {
+        const k = smooth(d);
+        over(px, G.inner.map((v, i) => v + (G.outer[i] - v) * k), G.alpha * (1 - d * d) ** 2);
+      }
+      const fromBottom = H - y;
+      if (fromBottom < S.height) {
+        let cover = 0;
+        for (let s = 0; s < 4; s++) {
+          const p = (x + 0.5) * S.dx + (y + 0.125 + s * 0.25) * S.dy;
+          if (((p % S.period) + S.period) % S.period < S.width) cover += 0.25;
+        }
+        over(px, [255, 255, 255], S.alpha * cover * (1 - fromBottom / S.height));
+      }
+      return px;
+    };
+  },
+};
 
-const smooth = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+if (!PRESETS[PRESET]) throw new Error(`unknown preset ${PRESET}; try ${Object.keys(PRESETS).join(", ")}`);
+const shade = PRESETS[PRESET]();
 
 // Deterministic PRNG so the file is reproducible.
 let seed = 0x9e3779b9;
@@ -72,76 +109,15 @@ const rand = () => {
 
 const px = Buffer.alloc(W * H * 3);
 for (let y = 0; y < H; y++) {
-  const ty = (y + 0.5) / H;
-  const row = base.map(f => f(ty));
   for (let x = 0; x < W; x++) {
-    let [r, g, b] = row;
-
-    // glow (alpha-over, in sRGB like the browser)
-    const ex = (x + 0.5 - GLOW.cx) / GLOW.rx, ey = (y + 0.5 - GLOW.cy) / GLOW.ry;
-    const d = Math.sqrt(ex * ex + ey * ey);
-    if (d < 1) {
-      const a = GLOW.alpha * (1 - d * d) ** 2;
-      const k = smooth(d);
-      r += (GLOW.inner[0] + (GLOW.outer[0] - GLOW.inner[0]) * k - r) * a;
-      g += (GLOW.inner[1] + (GLOW.outer[1] - GLOW.inner[1]) * k - g) * a;
-      b += (GLOW.inner[2] + (GLOW.outer[2] - GLOW.inner[2]) * k - b) * a;
-    }
-
-    // streaks (4× supersampled along the stripe axis for clean edges)
-    const fromBottom = H - y;
-    if (fromBottom < STREAK.height) {
-      let cover = 0;
-      for (let s = 0; s < 4; s++) {
-        const p = (x + 0.5) * STREAK.dx + (y + 0.125 + s * 0.25) * STREAK.dy;
-        if (((p % STREAK.period) + STREAK.period) % STREAK.period < STREAK.width) cover += 0.25;
-      }
-      const a = STREAK.alpha * cover * (1 - fromBottom / STREAK.height);
-      r += (255 - r) * a; g += (255 - g) * a; b += (255 - b) * a;
-    }
-
-    // TPDF dither, then quantise
-    const i = (y * W + x) * 3;
+    const [r, g, b] = shade(x, y), i = (y * W + x) * 3;
     px[i]     = Math.max(0, Math.min(255, Math.round(r + AMP * (rand() - rand()))));
     px[i + 1] = Math.max(0, Math.min(255, Math.round(g + AMP * (rand() - rand()))));
     px[i + 2] = Math.max(0, Math.min(255, Math.round(b + AMP * (rand() - rand()))));
   }
 }
 
-// ── PNG encode (RGB8, Paeth filter on every row) ─────────────────────────────
-function encodePNG(w, h, rgb) {
-  const stride = w * 3, raw = Buffer.alloc(h * (stride + 1));
-  for (let y = 0; y < h; y++) {
-    raw[y * (stride + 1)] = 4;
-    for (let x = 0; x < stride; x++) {
-      const v = rgb[y * stride + x];
-      const a = x >= 3 ? rgb[y * stride + x - 3] : 0;
-      const b = y ? rgb[(y - 1) * stride + x] : 0;
-      const c = x >= 3 && y ? rgb[(y - 1) * stride + x - 3] : 0;
-      const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
-      raw[y * (stride + 1) + 1 + x] = (v - (pa <= pb && pa <= pc ? a : pb <= pc ? b : c)) & 255;
-    }
-  }
-  const table = Array.from({ length: 256 }, (_, n) => {
-    let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0;
-  });
-  const crc = buf => { let c = ~0; for (const v of buf) c = table[(c ^ v) & 255] ^ (c >>> 8); return ~c >>> 0; };
-  const chunk = (type, data) => {
-    const t = Buffer.from(type), len = Buffer.alloc(4), sum = Buffer.alloc(4);
-    len.writeUInt32BE(data.length); sum.writeUInt32BE(crc(Buffer.concat([t, data])));
-    return Buffer.concat([len, t, data, sum]);
-  };
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2;
-  return Buffer.concat([
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-    chunk("IHDR", ihdr),
-    chunk("IDAT", zlib.deflateSync(raw, { level: 9 })),
-    chunk("IEND", Buffer.alloc(0)),
-  ]);
-}
-
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 const png = encodePNG(W, H, px);
 fs.writeFileSync(OUT, png);
-console.log(`${OUT}  ${W}×${H}  dither ±${AMP}  ${(png.length / 1024).toFixed(0)} KB`);
+console.log(`${OUT}  ${W}×${H}  ${PRESET}  dither ±${AMP}  ${(png.length / 1024).toFixed(0)} KB`);

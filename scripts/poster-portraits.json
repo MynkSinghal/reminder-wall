@@ -1,0 +1,137 @@
+{
+  "_about": "Source photos for the Poster wallpaper. 'commons' entries are fetched from Wikimedia Commons at 1400px into portrait-src/poster/<slug>.jpg; 'local' entries use a file already in portrait-src/. Credits feed CREDITS.md.",
+  "people": [
+    {
+      "slug": "frank-underwood",
+      "commons": "Kevin_Spacey-9243.jpg",
+      "author": "Harald Krichel",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "slug": "harvey-specter",
+      "commons": "Gabriel_Macht_3241.jpg",
+      "author": "Genevieve (derivative work: CennoxX)",
+      "license": "CC BY 2.0"
+    },
+    {
+      "slug": "walter-white",
+      "commons": "BryanCranston-byPhilipRomano_(cropped).jpg",
+      "author": "Philip Romano",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "slug": "mike-ehrmantraut",
+      "commons": "Jonathan_Banks_2012_2.jpg",
+      "author": "Gage Skidmore (derivative editing by Poke2001)",
+      "license": "CC BY-SA 3.0"
+    },
+    {
+      "slug": "tommy-shelby",
+      "commons": "Cillian_Murphy_at_the_London_premier_of_Steve_in_September_2025_(cropped).jpg",
+      "author": "Netflix",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "slug": "tyrion-lannister",
+      "commons": "Peter_Dinklage_by_Gage_Skidmore_2.jpg",
+      "author": "Gage Skidmore",
+      "license": "CC BY-SA 3.0"
+    },
+    {
+      "slug": "cersei-lannister",
+      "commons": "Lena_Headey_by_Gage_Skidmore_2.jpg",
+      "author": "Gage Skidmore",
+      "license": "CC BY-SA 3.0"
+    },
+    {
+      "slug": "don-draper",
+      "commons": "Jon_Hamm_at_the_2026_Toronto_International_Film_Festival.jpg",
+      "author": "Danielle G. Campbell",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "slug": "logan-roy",
+      "commons": "Brian_Cox_Edinburgh_2025.jpg",
+      "author": "Amy Martin Photography",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "slug": "bobby-axelrod",
+      "commons": "Damian_Lewis_Berlin_2015.jpg",
+      "author": "Siebbi",
+      "license": "CC BY-SA 3.0"
+    },
+    {
+      "slug": "omar-little",
+      "commons": "Omar_Michael_Williams_2012_Shankbone.JPG",
+      "author": "David Shankbone",
+      "license": "CC BY 3.0"
+    },
+    {
+      "slug": "don-corleone",
+      "commons": "Marlon_Brando_publicity_for_One-Eyed_Jacks.png",
+      "author": "Paramount Pictures",
+      "license": "Public domain"
+    },
+    {
+      "slug": "michael-corleone",
+      "commons": "Pacino_as_Serpico_in_1973.jpg",
+      "author": "Unknown (1973 publicity photo)",
+      "license": "Public domain"
+    },
+    {
+      "slug": "blondie",
+      "commons": "Clint_Eastwood_in_A_Fistful_of_Dollars,_1964.jpg",
+      "author": "Unknown (1964 publicity photo)",
+      "license": "Public domain"
+    },
+    {
+      "slug": "harvey-dent",
+      "commons": "Aaron_Eckhart_(29830286295)_(cropped).jpg",
+      "author": "Dick Thomas Johnson",
+      "license": "CC BY 2.0"
+    },
+    {
+      "slug": "tucker-max",
+      "local": "tucker-max.jpg",
+      "author": "TNW Conference (Wikimedia Commons: TNW_Con_EU15-_Tucker_Max_-_6.jpg)",
+      "license": "CC BY 2.0"
+    },
+    {
+      "slug": "mark-cuban",
+      "commons": "P20260518JB-0644_(3x4_cropped_on_Cuban).jpg",
+      "author": "The White House",
+      "license": "Public domain"
+    },
+    {
+      "slug": "friedrich-nietzsche",
+      "commons": "Nietzsche187a.jpg",
+      "author": "Friedrich Hermann Hartmann",
+      "license": "Public domain"
+    },
+    {
+      "slug": "abraham-lincoln",
+      "commons": "Abraham_Lincoln_O-77_matte_collodion_print.jpg",
+      "author": "Alexander Gardner",
+      "license": "Public domain"
+    },
+    {
+      "slug": "thomas-jefferson",
+      "commons": "Official_Presidential_portrait_of_Thomas_Jefferson_(by_Rembrandt_Peale,_1800).jpg",
+      "author": "Rembrandt Peale",
+      "license": "Public domain"
+    },
+    {
+      "slug": "oscar-wilde",
+      "commons": "Oscar_Wilde_by_Napoleon_Sarony._Three-quarter-length_photograph,_seated_(cropped).jpg",
+      "author": "Napoleon Sarony",
+      "license": "Public domain"
+    },
+    {
+      "slug": "thomas-szasz",
+      "local": "thomas-szasz.jpg",
+      "author": "Unknown",
+      "license": "Unknown (pre-existing in this repo)"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "_about": "Navy Poster palette. Read by app/api/image/route.tsx and by scripts/generate_backdrop.mjs + scripts/generate_poster_portraits.mjs — change it here, then re-run both scripts.",
+  "bg":    { "top": "#1A314A", "mid": "#14283E", "bot": "#0E1F31", "sheen": 0.06 },
+  "ink":   "#EEF4F8",
+  "label": "#8FB7D2",
+  "faint": "rgba(238,244,248,0.2)",
+  "photo": { "dark": [4, 12, 20], "light": [214, 228, 238] }
+}
