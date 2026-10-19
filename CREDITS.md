@@ -9,7 +9,7 @@ derived images in `public/portraits/poster/` too.
 | frank-underwood | [Kevin Spacey-9243.jpg](https://commons.wikimedia.org/wiki/File:Kevin_Spacey-9243.jpg) | Harald Krichel | CC BY-SA 4.0 |
 | harvey-specter | [Gabriel Macht 3241.jpg](https://commons.wikimedia.org/wiki/File:Gabriel_Macht_3241.jpg) | Genevieve (derivative work: CennoxX) | CC BY 2.0 |
 | walter-white | [BryanCranston-byPhilipRomano (cropped).jpg](https://commons.wikimedia.org/wiki/File:BryanCranston-byPhilipRomano_(cropped).jpg) | Philip Romano | CC BY-SA 4.0 |
-| mike-ehrmantraut | [Jonathan Banks 2012 2.jpg](https://commons.wikimedia.org/wiki/File:Jonathan_Banks_2012_2.jpg) | Gage Skidmore (derivative editing by Poke2001) | CC BY-SA 3.0 |
+| mike-ehrmantraut | mike-ehrmantraut.webp | AMC (promotional still) | Unknown (pre-existing in this repo) |
 | tommy-shelby | [Cillian Murphy at the London premier of Steve in September 2025 (cropped).jpg](https://commons.wikimedia.org/wiki/File:Cillian_Murphy_at_the_London_premier_of_Steve_in_September_2025_(cropped).jpg) | Netflix | CC BY-SA 4.0 |
 | tyrion-lannister | [Peter Dinklage by Gage Skidmore 2.jpg](https://commons.wikimedia.org/wiki/File:Peter_Dinklage_by_Gage_Skidmore_2.jpg) | Gage Skidmore | CC BY-SA 3.0 |
 | cersei-lannister | [Lena Headey by Gage Skidmore 2.jpg](https://commons.wikimedia.org/wiki/File:Lena_Headey_by_Gage_Skidmore_2.jpg) | Gage Skidmore | CC BY-SA 3.0 |

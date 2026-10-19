@@ -80,7 +80,7 @@ function grade({ w, h, rgb }, seed) {
 const sips = (...a) => execFileSync("sips", a, { stdio: "ignore" });
 function render(src, [x, y, w, h], outW, outH, dest, seed) {
   const cropJpg = path.join(TMP, "crop.jpg"), bmp = path.join(TMP, "crop.bmp"), png = path.join(TMP, "out.png");
-  sips("-c", String(h), String(w), "--cropOffset", String(y), String(x), src, "--out", cropJpg);
+  sips("-s", "format", "jpeg", "-c", String(h), String(w), "--cropOffset", String(y), String(x), src, "--out", cropJpg);
   sips("-z", String(outH), String(outW), "-s", "format", "bmp", cropJpg, "--out", bmp);
   const img = decodeBMP(fs.readFileSync(bmp));
   fs.writeFileSync(png, encodePNG(img.w, img.h, grade(img, seed)));
