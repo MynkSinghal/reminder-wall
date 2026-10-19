@@ -1,0 +1,12 @@
+{
+  "_about": "The Reminder Wall mark ('bleed stack'): two heavy bars that run off the tile like the poster's capitals, and a faded short one like a done reminder. 64-unit grid. Used by app/logo.tsx and scripts/generate_icons.mjs — change it here, then re-run the script.",
+  "grid": 64,
+  "radius": 14,
+  "tile": { "top": "#1A314A", "bottom": "#0E1F31" },
+  "ink": "#EEF4F8",
+  "bars": [
+    { "x": 13, "y": 15, "w": 60, "h": 10, "opacity": 1 },
+    { "x": 13, "y": 29, "w": 60, "h": 10, "opacity": 1 },
+    { "x": 13, "y": 43, "w": 20, "h": 10, "opacity": 0.32 }
+  ]
+}
