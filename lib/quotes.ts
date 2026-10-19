@@ -14,7 +14,10 @@ export interface Quote {
 
 export const QUOTES_KEY  = "quotes:list";
 export const PIN_KEY     = "quotes:pin";      // { id } — shown until unpinned
-export const PORTRAIT_KEY = (slug: string) => `portrait:${slug}`;
+export const PORTRAIT_KEY = (slug: string) => `portrait:${slug}`;          // legacy dot portraits
+// Poster photos uploaded from the dashboard (JPEG data URIs, already duotoned).
+export const POSTER_PHOTO_KEY = (slug: string) => `poster:photo:${slug}`;  // 700×960
+export const POSTER_THUMB_KEY = (slug: string) => `poster:thumb:${slug}`;  // 300×300
 
 // Character name -> portrait slug ("FRANK UNDERWOOD" -> "frank-underwood")
 export function slugify(c: string): string {

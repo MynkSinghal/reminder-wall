@@ -1,6 +1,7 @@
 import { ImageResponse } from "@vercel/og";
 import { redis, KEY } from "@/lib/redis";
-import { Quote, DEFAULT_QUOTES, QUOTES_KEY, PIN_KEY, slugify } from "@/lib/quotes";
+import { Quote, DEFAULT_QUOTES, QUOTES_KEY, PIN_KEY, POSTER_PHOTO_KEY, POSTER_THUMB_KEY, slugify } from "@/lib/quotes";
+import { calendar } from "@/lib/calendar";
 import { encodeReminder, SETTINGS_KEY, Settings } from "@/lib/encode";
 import { COND, HEAVY, HEAVY_LIST, breakLines, fitBlock, fitList, lineCount, wordGap } from "@/lib/poster-fit";
 import THEME from "@/lib/poster-theme.json";
@@ -32,7 +33,6 @@ const STRIP_Y = 2130;
 const MAX_DISPLAY = 6;
 
 const RULE = `3px solid ${THEME.ink}`;
-const TZ = "Asia/Kolkata";
 
 // ── Fonts (fontsource on jsDelivr — .woff is what Satori accepts) ─────────────
 const FONT_URLS = {
@@ -71,19 +71,6 @@ async function loadImage(origin: string, path: string): Promise<string | null> {
   } catch {
     return null;
   }
-}
-
-// ── Local calendar: weekday, day of year ─────────────────────────────────────
-function calendar(now: Date) {
-  const p = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", { timeZone: TZ, year: "numeric", month: "numeric", day: "numeric", weekday: "long" })
-      .formatToParts(now).map(x => [x.type, x.value]),
-  );
-  const y = +p.year;
-  const t = Date.UTC(y, +p.month - 1, +p.day);
-  const dayOfYear  = Math.round((t - Date.UTC(y, 0, 1)) / 86_400_000) + 1;
-  const daysInYear = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 366 : 365;
-  return { weekday: p.weekday, dayOfYear, daysInYear };
 }
 
 const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a, b) => a + b.toUpperCase());
@@ -136,7 +123,7 @@ export async function GET(req: Request) {
   const sorted  = [...all.filter(r => !r.done), ...all.filter(r => r.done)];
   const pending = sorted.filter(r => !r.done).length;
   const N       = sorted.length;
-  const { weekday, dayOfYear, daysInYear } = calendar(new Date());
+  const { weekday, dayOfYear, daysInYear } = calendar();
 
   // Today's quote — shown full-screen when the list is empty, and in a strip otherwise.
   const allQuotes = quotesData ?? DEFAULT_QUOTES;
@@ -156,7 +143,7 @@ export async function GET(req: Request) {
 
   // ── QUOTE SCREEN (empty list) ──────────────────────────────────────────────
   if (N === 0) {
-    const photo = await loadImage(origin, `/portraits/poster/${slug}.jpg`);
+    const photo = (await redis.get<string>(POSTER_PHOTO_KEY(slug))) ?? await loadImage(origin, `/portraits/poster/${slug}.jpg`);
     const text  = quote.q.toUpperCase();
     const box   = photo ? QUOTE_BOX : QUOTE_BOX_TXT;
     const size  = fitBlock(text, box, HEAVY, 0.88, photo ? 154 : 190, 52);
@@ -208,7 +195,7 @@ export async function GET(req: Request) {
   const size      = fitList(shown.map(r => r.text), hidden > 0, { w: INNER, h: LIST.h }, 230, 74);
   const num       = Math.round(size * 0.26);
 
-  const thumb     = await loadImage(origin, `/portraits/poster/${slug}-sq.jpg`);
+  const thumb     = (await redis.get<string>(POSTER_THUMB_KEY(slug))) ?? await loadImage(origin, `/portraits/poster/${slug}-sq.jpg`);
   const stripText = `“${quote.q}”`;
   const stripW    = INNER - (thumb ? 180 : 0);
   const stripSize = [40, 34, 30, 26].find(s => lineCount(stripText, s, stripW, COND) <= (s === 40 ? 2 : 3)) ?? 26;

@@ -3,277 +3,243 @@
 import { useEffect, useRef, useState } from "react";
 import type { Quote } from "@/lib/quotes";
 import { slugify } from "@/lib/quotes";
+import { makePosterPhoto, type Framing } from "@/lib/poster-photo";
+import { Action, Icon, SectionLabel, Sheet } from "./ui";
 
 interface QuotesData {
   quotes: Quote[];
   pin: { id: string } | null;
-  portraits: Record<string, string>;
+  thumbs: Record<string, string>;   // uploaded poster photos for custom quotes
 }
 
-// ── Client-side dot-portrait generator ─────────────────────────────────────────
-// Same algorithm as scripts/generate_portraits.py: 68-col luminance grid,
-// white dots sized by brightness, circular mask with radial fade.
-function makePortrait(
-  img: HTMLImageElement,
-  opts: { contrast: number; zoom: number; offsetY: number },
-): string {
-  const COLS = 68, OUT = 760, GAMMA = 0.85, FADE = 0.72, MIN_V = 0.06;
-  const sample = document.createElement("canvas");
-  sample.width = COLS; sample.height = COLS;
-  const sx = sample.getContext("2d")!;
-  sx.fillStyle = "#000"; sx.fillRect(0, 0, COLS, COLS);
-  const side = Math.min(img.width, img.height) / opts.zoom;
-  const cx = img.width / 2;
-  const cy = img.height * (0.40 + opts.offsetY);
-  sx.drawImage(
-    img,
-    Math.max(0, Math.min(img.width  - side, cx - side / 2)),
-    Math.max(0, Math.min(img.height - side, cy - side / 2)),
-    side, side, 0, 0, COLS, COLS,
-  );
-  const d = sx.getImageData(0, 0, COLS, COLS).data;
-  const out = document.createElement("canvas");
-  out.width = OUT; out.height = OUT;
-  const ox = out.getContext("2d")!;
-  const cell = OUT / COLS, R = OUT / 2;
-  for (let y = 0; y < COLS; y++) {
-    for (let x = 0; x < COLS; x++) {
-      const i = (y * COLS + x) * 4;
-      let v = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
-      v = Math.min(1, Math.max(0, (v - 0.5) * opts.contrast + 0.5));
-      v = Math.pow(v, GAMMA);
-      const px = x * cell + cell / 2, py = y * cell + cell / 2;
-      const dist = Math.hypot(px - R, py - R) / R;
-      if (dist > 1) continue;
-      if (dist > FADE) v *= Math.pow(Math.max(0, 1 - (dist - FADE) / (1 - FADE)), 1.4);
-      if (v < MIN_V) continue;
-      const r = v * cell * 0.6;
-      if (r < 0.5) continue;
-      ox.fillStyle = `rgba(255,255,255,${(0.24 + 0.76 * v).toFixed(3)})`;
-      ox.beginPath(); ox.arc(px, py, r, 0, 7); ox.fill();
-    }
-  }
-  return out.toDataURL("image/png");
-}
+type Filter = "all" | "on" | "off" | "custom";
+const titleCase = (s: string) => s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a, b) => a + b.toUpperCase());
 
-function Thumb({ slug, portraits }: { slug: string; portraits: Record<string, string> }) {
+function Thumb({ q, thumbs, size = 52 }: { q: Quote; thumbs: Record<string, string>; size?: number }) {
+  const slug = slugify(q.c);
   const [err, setErr] = useState(false);
-  const src = portraits[slug] ?? `/portraits/${slug}.png`;
-  if (err) return (
-    <div className="w-12 h-12 rounded-full bg-[#111] flex items-center justify-center text-[#333] text-xs shrink-0">?</div>
-  );
-  return (
-    <img src={src} onError={() => setErr(true)} alt=""
-      className="w-12 h-12 rounded-full bg-black object-cover shrink-0" />
+  const src = thumbs[slug] ?? `/portraits/poster/${slug}-sq.jpg`;
+  const initials = q.c.split(/\s+/).map(w => w[0]).slice(0, 2).join("");
+  return err ? (
+    <div className="flex shrink-0 items-center justify-center bg-white/[0.06] font-display text-[15px] text-label" style={{ width: size, height: size }}>{initials}</div>
+  ) : (
+    <img src={src} alt="" onError={() => setErr(true)} className="shrink-0 bg-navy-deep object-cover" style={{ width: size, height: size }} />
   );
 }
+
+const field = "w-full rounded-[12px] border border-line bg-white/[0.04] px-3.5 py-3 text-[17px] outline-none placeholder:text-faint focus:border-label/60";
 
 export default function QuotesTab() {
   const [data, setData]       = useState<QuotesData | null>(null);
-  const [showAdd, setShowAdd] = useState(false);
+  const [failed, setFailed]   = useState(false);
+  const [filter, setFilter]   = useState<Filter>("all");
+  const [activeId, setActive] = useState<string | null>(null);     // action sheet
+  const [editId, setEditId]   = useState<string | null>(null);     // edit sheet
+  const [adding, setAdding]   = useState(false);                   // add sheet
 
-  // add form
-  const [fq, setFq] = useState(""); const [fc, setFc] = useState(""); const [fs, setFs] = useState("");
-  const [imgEl, setImgEl]       = useState<HTMLImageElement | null>(null);
-  const [contrast, setContrast] = useState(1.6);
-  const [zoom, setZoom]         = useState(1.4);
-  const [offsetY, setOffsetY]   = useState(0);
-  const [preview, setPreview]   = useState<string | null>(null);
-  const [saving, setSaving]     = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const load = () => fetch("/api/quotes").then(r => r.json()).then(setData).catch(() => setData(null));
+  const load = () => fetch("/api/quotes").then(r => r.json()).then(d => { setData(d); setFailed(false); }).catch(() => setFailed(true));
   useEffect(() => { load(); }, []);
 
-  useEffect(() => {
-    if (!imgEl) { setPreview(null); return; }
-    setPreview(makePortrait(imgEl, { contrast, zoom, offsetY }));
-  }, [imgEl, contrast, zoom, offsetY]);
-
-  function onFile(f: File | undefined) {
-    if (!f) return;
-    const img = new Image();
-    img.onload = () => setImgEl(img);
-    img.src = URL.createObjectURL(f);
-  }
-
-  // fire-and-forget PATCH; UI is updated optimistically by the caller
-  function patch(body: object) {
-    fetch("/api/quotes", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-      .catch(() => load()); // re-sync only on failure
-  }
+  // fire-and-forget PATCH; UI is already updated optimistically
+  const patch = (body: object) =>
+    fetch("/api/quotes", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(load);
 
   function setPin(id: string | null) {
-    setData(d => d ? { ...d, pin: id ? { id } : null } : d);
+    setData(d => d && { ...d, pin: id ? { id } : null });
     patch({ pin: id });
   }
-
   function setDisabled(id: string, disabled: boolean) {
-    setData(d => d ? { ...d, quotes: d.quotes.map(x => x.id === id ? { ...x, disabled } : x) } : d);
+    setData(d => d && { ...d, quotes: d.quotes.map(x => (x.id === id ? { ...x, disabled } : x)), pin: disabled && d.pin?.id === id ? null : d.pin });
     patch({ id, disabled });
+    if (disabled && data?.pin?.id === id) patch({ pin: null });
   }
-
   function remove(id: string) {
-    setData(d => d ? { ...d, quotes: d.quotes.filter(x => x.id !== id),
-      pin: d.pin?.id === id ? null : d.pin } : d);
-    fetch("/api/quotes", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
-      .catch(() => load());
+    setData(d => d && { ...d, quotes: d.quotes.filter(x => x.id !== id), pin: d.pin?.id === id ? null : d.pin });
+    fetch("/api/quotes", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }).catch(load);
+  }
+  function saveEdit(id: string, q: string, c: string, s: string) {
+    setData(d => d && { ...d, quotes: d.quotes.map(x => (x.id === id ? { ...x, q: q.trim(), c: c.trim().toUpperCase(), s: s.trim() || x.s } : x)) });
+    patch({ id, q, c, s });
   }
 
-  // ── inline edit ──
-  const [editId, setEditId] = useState<string | null>(null);
-  const [eq, setEq] = useState(""); const [ec, setEc] = useState(""); const [es, setEs] = useState("");
+  if (failed) return <p className="pt-10 text-[17px] text-dim">Couldn&apos;t load quotes. Check your connection, then switch tabs to retry.</p>;
+  if (!data) return (
+    <div className="flex flex-col gap-2 pt-2" aria-label="Loading quotes">
+      {[0, 1, 2, 3].map(i => <div key={i} className="h-[76px] animate-pulse rounded-[14px] bg-white/[0.05]" />)}
+    </div>
+  );
 
-  function startEdit(qt: Quote) {
-    setEditId(qt.id); setEq(qt.q); setEc(qt.c); setEs(qt.s);
-  }
-
-  function commitEdit() {
-    if (!editId || !eq.trim() || !ec.trim()) return;
-    const c = ec.trim().toUpperCase();
-    setData(d => d ? { ...d, quotes: d.quotes.map(x =>
-      x.id === editId ? { ...x, q: eq.trim(), c, s: es.trim() || x.s } : x) } : d);
-    patch({ id: editId, q: eq, c: ec, s: es });
-    setEditId(null);
-  }
-
-  async function addQuote() {
-    if (!fq.trim() || !fc.trim()) return;
-    setSaving(true);
-    await fetch("/api/quotes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ q: fq, c: fc, s: fs, portrait: preview ?? undefined }),
-    });
-    setFq(""); setFc(""); setFs(""); setImgEl(null); setPreview(null); setShowAdd(false);
-    if (fileRef.current) fileRef.current.value = "";
-    await load();
-    setSaving(false);
-  }
-
-  if (!data) return <p className="text-[#333] text-sm text-center py-16">Loading…</p>;
   const pinId = data.pin?.id ?? null;
+  const pinned = data.quotes.find(q => q.id === pinId);
+  const offCount = data.quotes.filter(q => q.disabled).length;
+  const shown = data.quotes.filter(q =>
+    filter === "all" ? true : filter === "on" ? !q.disabled : filter === "off" ? q.disabled : q.custom);
+  const active = data.quotes.find(q => q.id === activeId);
+  const editing = data.quotes.find(q => q.id === editId);
 
   return (
-    <div>
-      {/* Add quote */}
-      <div className="mb-8">
-        {!showAdd ? (
-          <button onClick={() => setShowAdd(true)}
-            className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-4 text-left text-[#282828] text-base hover:border-[#9FCBEA]/40 transition-colors">
-            Add your own quote…
-          </button>
-        ) : (
-          <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-4 space-y-3">
-            <textarea value={fq} onChange={e => setFq(e.target.value)} rows={2}
-              placeholder="Quote text…"
-              className="w-full bg-transparent text-white placeholder-[#282828] text-base outline-none resize-none" />
-            <div className="flex gap-3">
-              <input value={fc} onChange={e => setFc(e.target.value)} placeholder="Character / person"
-                className="flex-1 bg-transparent text-white placeholder-[#282828] text-sm outline-none border-b border-[#1a1a1a] pb-1" />
-              <input value={fs} onChange={e => setFs(e.target.value)} placeholder="Show / source (optional)"
-                className="flex-1 bg-transparent text-white placeholder-[#282828] text-sm outline-none border-b border-[#1a1a1a] pb-1" />
-            </div>
-
-            {/* Portrait upload + live dot preview */}
-            <div className="flex gap-4 items-start pt-1">
-              <div className="flex-1 space-y-2">
-                <input ref={fileRef} type="file" accept="image/*" onChange={e => onFile(e.target.files?.[0])}
-                  className="text-xs text-[#555] file:bg-[#1a1a1a] file:text-[#999] file:border-0 file:rounded file:px-3 file:py-1.5 file:mr-3" />
-                {imgEl && (
-                  <div className="space-y-1.5 text-[10px] text-[#555]">
-                    <label className="flex items-center gap-2">ZOOM
-                      <input type="range" min={1} max={3} step={0.05} value={zoom}
-                        onChange={e => setZoom(+e.target.value)} className="flex-1 accent-[#9FCBEA]" /></label>
-                    <label className="flex items-center gap-2">FACE ↑↓
-                      <input type="range" min={-0.25} max={0.25} step={0.01} value={offsetY}
-                        onChange={e => setOffsetY(+e.target.value)} className="flex-1 accent-[#9FCBEA]" /></label>
-                    <label className="flex items-center gap-2">CONTRAST
-                      <input type="range" min={0.8} max={2.6} step={0.05} value={contrast}
-                        onChange={e => setContrast(+e.target.value)} className="flex-1 accent-[#9FCBEA]" /></label>
-                  </div>
-                )}
-              </div>
-              {preview && (
-                <img src={preview} alt="portrait preview" className="w-28 h-28 rounded-full bg-black shrink-0" />
-              )}
-            </div>
-
-            <div className="flex gap-2 justify-end pt-1">
-              <button onClick={() => setShowAdd(false)}
-                className="text-xs text-[#555] px-3 py-2">Cancel</button>
-              <button onClick={addQuote} disabled={!fq.trim() || !fc.trim() || saving}
-                className="bg-[#9FCBEA] text-black text-xs font-bold tracking-wider px-4 py-2 rounded-lg disabled:opacity-20 active:scale-95 transition-all">
-                {saving ? "SAVING…" : "ADD QUOTE"}
-              </button>
+    <div className="flex flex-col gap-6 pb-32">
+      {/* Pinned quote — shows every night until unpinned */}
+      {pinned ? (
+        <section className="overflow-hidden rounded-[18px] border border-label/40 bg-label/[0.08]">
+          <div className="flex items-center justify-between px-4 pt-3.5">
+            <span className="font-mono text-[11px] tracking-[0.12em] text-label">PINNED · SHOWS EVERY NIGHT</span>
+            <button onClick={() => setPin(null)} className="-my-2 px-2 py-2 font-mono text-[11px] tracking-[0.1em] text-label active:opacity-60">UNPIN</button>
+          </div>
+          <div className="flex gap-4 p-4">
+            <Thumb q={pinned} thumbs={data.thumbs} size={72} />
+            <div className="min-w-0">
+              <p className="font-display text-[20px] uppercase leading-[0.95] tracking-[-0.02em]">{pinned.q}</p>
+              <p className="mt-2 font-mono text-[11px] tracking-[0.06em] text-label">{pinned.c}</p>
             </div>
           </div>
-        )}
-      </div>
+        </section>
+      ) : (
+        <p className="text-[15px] leading-snug text-dim">A random quote from the ones that are on shows each night, full screen when your list is empty and in a strip otherwise. Pin one to show it every night.</p>
+      )}
 
-      {/* List */}
-      <ul className="space-y-1">
-        {data.quotes.map(qt => {
-          const slug = slugify(qt.c);
-          const pinned = pinId === qt.id;
-          if (editId === qt.id) return (
-            <li key={qt.id} className="rounded-xl px-3 py-3 border border-[#9FCBEA]/30 bg-[#0a0a0a] space-y-2">
-              <textarea value={eq} onChange={e => setEq(e.target.value)} rows={2} autoFocus
-                className="w-full bg-transparent text-white text-sm outline-none resize-none" />
-              <div className="flex gap-3">
-                <input value={ec} onChange={e => setEc(e.target.value)} placeholder="Character"
-                  className="flex-1 bg-transparent text-[#999] text-xs outline-none border-b border-[#1a1a1a] pb-1" />
-                <input value={es} onChange={e => setEs(e.target.value)} placeholder="Show / source"
-                  className="flex-1 bg-transparent text-[#999] text-xs outline-none border-b border-[#1a1a1a] pb-1" />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => setEditId(null)} className="text-xs text-[#555] px-3 py-1.5">Cancel</button>
-                <button onClick={commitEdit} disabled={!eq.trim() || !ec.trim()}
-                  className="bg-[#9FCBEA] text-black text-[11px] font-bold tracking-wider px-3 py-1.5 rounded-lg disabled:opacity-20">
-                  SAVE
+      <section className="flex flex-col gap-3">
+        <SectionLabel right={
+          <button onClick={() => setAdding(true)} className="-my-2 flex items-center gap-1 px-2 py-2 font-mono text-[11px] tracking-[0.1em] text-label active:opacity-60">
+            <span className="text-[15px] leading-none">+</span> ADD QUOTE
+          </button>
+        }>{data.quotes.length} QUOTES{offCount ? ` · ${offCount} OFF` : ""}</SectionLabel>
+
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Filter quotes">
+          {(["all", "on", "off", "custom"] as Filter[]).map(f => (
+            <button key={f} role="tab" aria-selected={filter === f} onClick={() => setFilter(f)}
+              className={`shrink-0 rounded-full border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors ${
+                filter === f ? "border-ink bg-ink text-navy-deep" : "border-line text-dim"}`}>
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {shown.length === 0 ? (
+          <p className="py-8 text-[15px] text-dim">{filter === "custom" ? "No quotes of your own yet. Tap Add quote to write one." : "Nothing here."}</p>
+        ) : (
+          <ul className="flex flex-col">
+            {shown.map(q => (
+              <li key={q.id}>
+                <button onClick={() => setActive(q.id)}
+                  className={`flex w-full items-center gap-3.5 border-b border-line py-3 text-left transition-opacity active:opacity-60 ${q.disabled ? "opacity-40" : ""}`}>
+                  <Thumb q={q} thumbs={data.thumbs} />
+                  <span className="min-w-0 flex-1">
+                    <span className="line-clamp-2 text-[16px] font-semibold leading-snug">“{q.q}”</span>
+                    <span className="mt-1 flex flex-wrap items-center gap-x-2 font-mono text-[11px] tracking-[0.05em] text-label">
+                      {titleCase(q.c)}
+                      {q.id === pinId && <span className="text-ice">· PINNED</span>}
+                      {q.disabled && <span className="text-faint">· OFF</span>}
+                      {q.custom && <span className="text-faint">· YOURS</span>}
+                    </span>
+                  </span>
                 </button>
-              </div>
-            </li>
-          );
-          return (
-            <li key={qt.id}
-              className={`group flex items-center gap-3 rounded-xl px-3 py-3 border transition-colors ${
-                pinned ? "border-[#9FCBEA]/40 bg-[#9FCBEA]/5"
-                       : "border-transparent hover:border-[#1a1a1a]"
-              } ${qt.disabled ? "opacity-35" : ""}`}>
-              <Thumb slug={slug} portraits={data.portraits} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-white truncate">&ldquo;{qt.q}&rdquo;</p>
-                <p className="text-[11px] text-[#666] tracking-wider mt-0.5">
-                  {qt.c} <span className="text-[#333]">· {qt.s.toUpperCase()}</span>
-                  {qt.custom && <span className="text-[#9FCBEA]/60 ml-2">CUSTOM</span>}
-                </p>
-              </div>
-              <button title={pinned ? "Unpin" : "Pin — always show this quote"}
-                onClick={() => setPin(pinned ? null : qt.id)}
-                disabled={qt.disabled}
-                className={`text-sm px-2 py-1 rounded ${pinned ? "text-[#9FCBEA]" : "text-[#444] hover:text-[#999]"}`}>
-                {pinned ? "★" : "☆"}
-              </button>
-              <button title="Edit" onClick={() => startEdit(qt)}
-                className="text-xs text-[#444] hover:text-[#999] px-2 py-1 rounded">✎</button>
-              <button title={qt.disabled ? "Enable" : "Disable"}
-                onClick={() => setDisabled(qt.id, !qt.disabled)}
-                className="text-xs text-[#444] hover:text-[#999] px-2 py-1 rounded">
-                {qt.disabled ? "OFF" : "ON"}
-              </button>
-              {qt.custom && (
-                <button title="Delete" onClick={() => remove(qt.id)}
-                  className="text-xs text-[#444] hover:text-red-400 px-2 py-1 rounded">✕</button>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      <p className="text-[11px] text-[#333] mt-6 text-center">
-        ★ pinned quote always shows on the wallpaper · OFF removes a quote from rotation
-      </p>
+      {/* Actions for one quote */}
+      <Sheet open={!!active} onClose={() => setActive(null)}>
+        {active && (
+          <>
+            <div className="mb-5 flex gap-4">
+              <Thumb q={active} thumbs={data.thumbs} size={64} />
+              <div className="min-w-0">
+                <p className="font-display text-[19px] uppercase leading-[0.95] tracking-[-0.02em]">{active.q}</p>
+                <p className="mt-2 font-mono text-[11px] tracking-[0.06em] text-label">{active.c} · {active.s.toUpperCase()}</p>
+              </div>
+            </div>
+            <Action icon={Icon.star(active.id === pinId)} label={active.id === pinId ? "Unpin" : "Pin — show every night"}
+              disabled={active.disabled} onClick={() => { setPin(active.id === pinId ? null : active.id); setActive(null); }} />
+            <Action icon={Icon.eye(!!active.disabled)} label={active.disabled ? "Turn on" : "Turn off — skip in rotation"}
+              onClick={() => { setDisabled(active.id, !active.disabled); setActive(null); }} />
+            <Action icon={<Icon.edit />} label="Edit" onClick={() => { setEditId(active.id); setActive(null); }} />
+            {active.custom && <Action icon={<Icon.trash />} label="Delete" danger onClick={() => { remove(active.id); setActive(null); }} />}
+          </>
+        )}
+      </Sheet>
+
+      <Sheet open={!!editing} onClose={() => setEditId(null)} title="Edit quote">
+        {editing && <QuoteForm initial={editing} submitLabel="Save" onSubmit={async (q, c, s) => { saveEdit(editing.id, q, c, s); setEditId(null); }} />}
+      </Sheet>
+
+      <Sheet open={adding} onClose={() => setAdding(false)} title="New quote">
+        <QuoteForm withPhoto submitLabel="Add quote" onSubmit={async (q, c, s, photo) => {
+          await fetch("/api/quotes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q, c, s, ...photo }) });
+          await load();
+          setAdding(false);
+        }} />
+      </Sheet>
     </div>
+  );
+}
+
+// ── Add / edit form ───────────────────────────────────────────────────────────
+function QuoteForm({ initial, withPhoto, submitLabel, onSubmit }: {
+  initial?: Quote; withPhoto?: boolean; submitLabel: string;
+  onSubmit: (q: string, c: string, s: string, photo?: { photo: string; thumb: string }) => Promise<void>;
+}) {
+  const [q, setQ] = useState(initial?.q ?? "");
+  const [c, setC] = useState(initial ? titleCase(initial.c) : "");
+  const [s, setS] = useState(initial?.s ?? "");
+  const [img, setImg] = useState<HTMLImageElement | null>(null);
+  const [frame, setFrame] = useState<Framing>({ zoom: 1.2, x: 0, y: -0.4 });
+  const [preview, setPreview] = useState<{ photo: string; thumb: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setPreview(img ? makePosterPhoto(img, frame) : null); }, [img, frame]);
+
+  function onFile(f?: File) {
+    if (!f) return;
+    const el = new Image();
+    el.onload = () => setImg(el);
+    el.src = URL.createObjectURL(f);
+  }
+
+  const ok = q.trim() && c.trim() && !saving;
+  return (
+    <form className="flex flex-col gap-3" onSubmit={async e => {
+      e.preventDefault();
+      if (!ok) return;
+      setSaving(true);
+      try { await onSubmit(q, c, s, preview ?? undefined); } finally { setSaving(false); }
+    }}>
+      <textarea value={q} onChange={e => setQ(e.target.value)} rows={3} placeholder="The quote" aria-label="Quote" className={`${field} resize-none leading-snug`} />
+      <input value={c} onChange={e => setC(e.target.value)} placeholder="Who said it" aria-label="Who said it" className={field} />
+      <input value={s} onChange={e => setS(e.target.value)} placeholder="From (show, book, film) — optional" aria-label="Source" className={field} />
+
+      {withPhoto && (
+        <div className="flex flex-col gap-3 rounded-[14px] border border-line p-3">
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => onFile(e.target.files?.[0])} />
+          {!preview ? (
+            <button type="button" onClick={() => fileRef.current?.click()} className="flex items-center gap-3 py-1 text-left text-[16px] font-semibold active:opacity-60">
+              <span className="text-label"><Icon.photo /></span>
+              <span>Add a photo <span className="block text-[14px] font-normal text-dim">Optional. Toned navy for the wallpaper; without one the quote gets the full screen.</span></span>
+            </button>
+          ) : (
+            <div className="flex gap-4">
+              <img src={preview.photo} alt="Photo preview" className="w-[104px] shrink-0" style={{ aspectRatio: "700 / 960" }} />
+              <div className="flex min-w-0 flex-1 flex-col gap-2.5 font-mono text-[11px] tracking-[0.08em] text-label">
+                {([["ZOOM", "zoom", 1, 3], ["LEFT ↔ RIGHT", "x", -1, 1], ["UP ↕ DOWN", "y", -1, 1]] as const).map(([label, key, min, max]) => (
+                  <label key={key} className="flex flex-col gap-1">{label}
+                    <input type="range" min={min} max={max} step={0.01} value={frame[key]} className="accent-[#8FB7D2]"
+                      onChange={e => setFrame(f => ({ ...f, [key]: +e.target.value }))} />
+                  </label>
+                ))}
+                <button type="button" onClick={() => { setImg(null); if (fileRef.current) fileRef.current.value = ""; }} className="self-start py-1 text-faint">REMOVE PHOTO</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <button type="submit" disabled={!ok}
+        className="mt-2 rounded-full bg-label py-3.5 font-display text-[15px] uppercase tracking-[0.02em] text-navy-deep transition-transform active:scale-[0.98] disabled:opacity-30">
+        {saving ? "Saving…" : submitLabel}
+      </button>
+    </form>
   );
 }
